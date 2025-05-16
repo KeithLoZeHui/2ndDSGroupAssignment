@@ -2,14 +2,9 @@
 #define KEITH_TASK2_HPP
 
 #include <iostream>
-#include <cstring>
+#include <string>
 #include <fstream>
 #include <sstream>
-#include <ctime>
-#include <iomanip>
-#include <random>
-#include <limits>
-using namespace std;
 
 // Player structure
 struct Player {
@@ -38,6 +33,7 @@ struct Group {
     Group() : playerCount(0) { groupID[0] = '\0'; }
 };
 
+// Function declarations - only declare what they do, not how they do it
 int split(const std::string& s, char delimiter, std::string tokens[], int max_tokens);
 PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players);
 void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players);
@@ -49,13 +45,17 @@ void write_checkedin_csv(char arr[][6][120], int n);
 void withdraw_from_csv();
 void replace_in_csv();
 
-// Custom FIFO Queue (First In, First Out)
+// Custom FIFO Queue (First In, First Out) - Class declaration
 class PlayerQueue {
+private:
     Player* arr;
     int front, rear, capacity;
 public:
+    // Constructor and destructor
     PlayerQueue(int initial_capacity = 10);
     ~PlayerQueue();
+    
+    // Member function declarations
     bool isEmpty();
     bool isFull();
     void resize();
@@ -70,4 +70,4 @@ public:
     void display();
 };
 
-#endif // KEITH_TASK2_HPP 
+#endif // KEITH_TASK2_HPP
