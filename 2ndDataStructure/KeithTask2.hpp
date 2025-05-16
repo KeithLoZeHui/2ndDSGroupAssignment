@@ -24,7 +24,7 @@ struct PlayerCSV {
     char CheckInStatus[20];
     char Withdrawn[5];
 };
-
+//testing
 // Group struct to hold up to 5 players
 struct Group {
     char groupID[10];
