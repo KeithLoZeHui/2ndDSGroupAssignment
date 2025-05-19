@@ -1,5 +1,4 @@
 #include "KeithTask2.hpp"
-#include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <random>
@@ -8,12 +7,22 @@
 using namespace std;
 
 // Split string by delimiter
-int split(const std::string& s, char delimiter, std::string tokens[], int max_tokens) {
+int split(const char* s, char delimiter, char tokens[][100], int max_tokens) {
     int count = 0;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (getline(tokenStream, token, delimiter) && count < max_tokens) {
-        tokens[count++] = token;
+    int len = strlen(s);
+    int start = 0;
+    
+    for (int i = 0; i <= len; i++) {
+        if (s[i] == delimiter || s[i] == '\0') {
+            if (count < max_tokens) {
+                int tokenLen = i - start;
+                if (tokenLen > 99) tokenLen = 99; // Ensure we don't overflow
+                strncpy(tokens[count], s + start, tokenLen);
+                tokens[count][tokenLen] = '\0';
+                count++;
+            }
+            start = i + 1;
+        }
     }
     return count;
 }
@@ -21,29 +30,32 @@ int split(const std::string& s, char delimiter, std::string tokens[], int max_to
 // Load players from CSV file
 PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players) {
     std::ifstream file(filename);
-    std::string line;
+    char line[500];
     int capacity = 10;
     num_players = 0;
     PlayerCSV* players = new PlayerCSV[capacity];
-    getline(file, line); // skip header
-    while (getline(file, line)) {
-        std::string cols[6];
-        int n = split(line, ',', cols, 6);
-        if (n < 6) continue;
-        if (num_players == capacity) {
-            capacity *= 2;
-            PlayerCSV* new_players = new PlayerCSV[capacity];
-            for (int i = 0; i < num_players; ++i) new_players[i] = players[i];
-            delete[] players;
-            players = new_players;
+    
+    // Skip header
+    if (file.getline(line, 500)) {
+        while (file.getline(line, 500)) {
+            char cols[6][100];
+            int n = split(line, ',', cols, 6);
+            if (n < 6) continue;
+            if (num_players == capacity) {
+                capacity *= 2;
+                PlayerCSV* new_players = new PlayerCSV[capacity];
+                for (int i = 0; i < num_players; ++i) new_players[i] = players[i];
+                delete[] players;
+                players = new_players;
+            }
+            players[num_players].PlayerID = atoi(cols[0]);
+            strncpy(players[num_players].PlayerName, cols[1], 49);
+            strncpy(players[num_players].PriorityType, cols[2], 19);
+            strncpy(players[num_players].RegistrationTime, cols[3], 24);
+            strncpy(players[num_players].CheckInStatus, cols[4], 19);
+            strncpy(players[num_players].Withdrawn, cols[5], 4);
+            num_players++;
         }
-        players[num_players].PlayerID = std::stoi(cols[0]);
-        strncpy(players[num_players].PlayerName, cols[1].c_str(), 49);
-        strncpy(players[num_players].PriorityType, cols[2].c_str(), 19);
-        strncpy(players[num_players].RegistrationTime, cols[3].c_str(), 24);
-        strncpy(players[num_players].CheckInStatus, cols[4].c_str(), 19);
-        strncpy(players[num_players].Withdrawn, cols[5].c_str(), 4);
-        num_players++;
     }
     return players;
 }
@@ -67,16 +79,16 @@ void display_checkedin_csv() {
         std::cout << "checkedin.csv not found.\n";
         return;
     }
-    std::string line;
+    char line[500];
     int row = 0;
     std::cout << "\nChecked-in Players:\n";
     std::cout << "------------------------------------------\n";
-    while (getline(file, line)) {
+    while (file.getline(line, 500)) {
         if (row == 0) {
             row++;
             continue; // Skip header
         }
-        std::string cols[6];
+        char cols[6][100];
         split(line, ',', cols, 6);
         std::cout << row << ". ID: " << cols[0] << ", Name: " << cols[1] << ", Priority: " << cols[2] 
                   << ", Time: " << cols[3] << ", Status: " << cols[4] << ", Withdrawn: " << cols[5] << "\n";
@@ -90,9 +102,9 @@ void display_checkedin_csv() {
 int count_checkedin_csv_rows() {
     std::ifstream file("checkedin.csv");
     if (!file.is_open()) return 0;
-    std::string line;
+    char line[500];
     int count = 0;
-    while (getline(file, line)) count++;
+    while (file.getline(line, 500)) count++;
     return count > 0 ? count - 1 : 0; // Subtract header if file not empty
 }
 
@@ -100,14 +112,14 @@ int count_checkedin_csv_rows() {
 void load_checkedin_csv(char arr[][6][120], int& n) {
     std::ifstream file("checkedin.csv");
     if (!file.is_open()) return;
-    std::string line;
+    char line[500];
     n = 0;
-    getline(file, line); // Skip header
-    while (getline(file, line) && n < 100) {
-        std::string cols[6];
+    file.getline(line, 500); // Skip header
+    while (file.getline(line, 500) && n < 100) {
+        char cols[6][100];
         split(line, ',', cols, 6);
         for (int i = 0; i < 6; i++) {
-            strncpy(arr[n][i], cols[i].c_str(), 119);
+            strncpy(arr[n][i], cols[i], 119);
             arr[n][i][119] = '\0';
         }
         n++;
@@ -243,15 +255,14 @@ int main() {
 }
 
 // Generate random ID
-std::string generateRandomID(int length) {
+void generateRandomID(char* output, int length) {
     static const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    std::string id;
     static std::random_device rd;
     static std::mt19937 gen(rd());
     static std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
     for (int i = 0; i < length; ++i)
-        id += alphanum[dis(gen)];
-    return id;
+        output[i] = alphanum[dis(gen)];
+    output[length] = '\0';
 }
 
 // PlayerQueue implementation
@@ -297,27 +308,31 @@ bool PlayerQueue::file_exists(const char* filename) {
 }
 
 // Validate ID
-bool PlayerQueue::is_valid_id(const std::string& s) {
-    if (s.empty()) return false;
-    for (char c : s) if (!isdigit(c)) return false;
+bool PlayerQueue::is_valid_id(const char* s) {
+    if (s == nullptr || s[0] == '\0') return false;
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (!isdigit(s[i])) return false;
+    }
     return true;
 }
 
 // Validate email
-bool PlayerQueue::is_valid_email(const std::string& s) {
-    return s.find('@') != std::string::npos;
+bool PlayerQueue::is_valid_email(const char* s) {
+    if (s == nullptr) return false;
+    const char* at = strchr(s, '@');
+    return at != nullptr;
 }
 
 // Check for duplicates in CSV
 bool PlayerQueue::is_duplicate_in_csv(const char* filename, const char* playerID, const char* email) {
         std::ifstream file(filename);
-        std::string line;
-        getline(file, line); // skip header
-        while (getline(file, line)) {
-            std::string cols[5];
+        char line[500];
+        file.getline(line, 500); // skip header
+        while (file.getline(line, 500)) {
+            char cols[5][100];
             int n = split(line, ',', cols, 5);
             if (n < 5) continue;
-            if ((playerID[0] != '\0' && cols[1] == playerID) || (email[0] != '\0' && strcmp(cols[2].c_str(), email) == 0)) {
+            if ((playerID[0] != '\0' && strcmp(cols[1], playerID) == 0) || (email[0] != '\0' && strcmp(cols[2], email) == 0)) {
                 return true;
             }
         }
@@ -369,19 +384,15 @@ void PlayerQueue::enqueue() {
                 Player p;
                 cout << "Enter player " << (g+1) << " name: ";
                 cin.getline(p.name, 50);
-                string randID = generateRandomID();
-                strncpy(p.PlayerID, randID.c_str(), 4);
-                p.PlayerID[4] = '\0';
+                generateRandomID(p.PlayerID, 4);
                 cout << "Generated PlayerID: " << p.PlayerID << endl;
-                string email_str;
                 while (true) {
                     cout << "Enter player email: ";
-                    getline(cin, email_str);
-                    if (!is_valid_email(email_str)) {
+                    cin.getline(p.PlayerEmail, 100);
+                    if (!is_valid_email(p.PlayerEmail)) {
                         cout << "Invalid email format. Please include '@'.\n";
                         continue;
                     }
-                    strncpy(p.PlayerEmail, email_str.c_str(), 99);
                     break;
                 }
                 p.priority = groupPriority;
@@ -452,19 +463,15 @@ void PlayerQueue::enqueue() {
             Player p;
             cout << "Enter player name: ";
             cin.getline(p.name, 50);
-            string randID = generateRandomID();
-            strncpy(p.PlayerID, randID.c_str(), 4);
-            p.PlayerID[4] = '\0';
+            generateRandomID(p.PlayerID, 4);
             cout << "Generated PlayerID: " << p.PlayerID << endl;
-            string email_str;
             while (true) {
                 cout << "Enter player email: ";
-                getline(cin, email_str);
-                if (!is_valid_email(email_str)) {
+                cin.getline(p.PlayerEmail, 100);
+                if (!is_valid_email(p.PlayerEmail)) {
                     cout << "Invalid email format. Please include '@'.\n";
                     continue;
                 }
-                strncpy(p.PlayerEmail, email_str.c_str(), 99);
                 break;
             }
             int priority;
