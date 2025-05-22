@@ -2,9 +2,8 @@
 #define KEITH_TASK2_HPP
 
 #include <iostream>
-#include <string>
 #include <fstream>
-#include <sstream>
+#include <cstring>
 
 // Player structure
 struct Player {
@@ -34,10 +33,10 @@ struct Group {
 };
 
 // Function declarations - only declare what they do, not how they do it
-int split(const std::string& s, char delimiter, std::string tokens[], int max_tokens);
+int split(const char* s, char delimiter, char tokens[][100], int max_tokens);
 PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players);
 void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players);
-std::string generateRandomID(int length = 4);
+void generateRandomID(char* output, int length = 4);
 void display_checkedin_csv();
 int count_checkedin_csv_rows();
 void load_checkedin_csv(char arr[][6][120], int& n);
@@ -60,8 +59,8 @@ public:
     bool isFull();
     void resize();
     bool file_exists(const char* filename);
-    bool is_valid_id(const std::string& s);
-    bool is_valid_email(const std::string& s);
+    bool is_valid_id(const char* s);
+    bool is_valid_email(const char* s);
     bool is_duplicate_in_csv(const char* filename, const char* playerID, const char* email);
     void enqueue();
     void dequeue();
