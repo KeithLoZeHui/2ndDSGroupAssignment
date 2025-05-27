@@ -9,6 +9,7 @@ int main() {
     do {
         cout << "\nTask Selection Menu\n";
         cout << "1. Run Keith's Task 2\n";
+        cout << "2. Run Task 1\n";
         cout << "0. Exit\n";
         cout << "Enter choice: ";
         cin >> choice;
@@ -20,6 +21,9 @@ int main() {
                 break;
             case 1:
                 system("KeithLoZeHuiTask2.exe");
+                break;
+            case 2:
+                system("Task1.exe");
                 break;
             default:
                 cout << "Invalid choice! Please enter 0 or 1.\n";
