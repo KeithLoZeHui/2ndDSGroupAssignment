@@ -1,4 +1,5 @@
 PlayerID,PlayerName,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName
+<<<<<<< HEAD
 5739,Sen1,Early-bird,2025-05-22 23:24:14,Checked-in,No,573905,Sen
 5739,name1@,Early-bird,2025-05-22 23:36:45,Checked-in,No,573905,name1
 5739,name2,Early-bird,2025-05-22 23:59:35,Checked-in,No,573905,sisters
@@ -22,3 +23,6 @@ Ice,Zero,Early-bird,2025-05-23 01:13:05,Checked-in,No,IceGroup,frostbyte
 Nova,Comet,Wildcard,2025-05-23 01:14:00,Checked-in,No,NovaGroup,starline
 Nova,Stella,Wildcard,2025-05-23 01:14:03,Checked-in,No,NovaGroup,starline
 
+=======
+YjLu_6420,name,Wildcard,2025-05-28 12:27:00,Checked-in,No,YjLu0a,nameofgrpr
+>>>>>>> testing

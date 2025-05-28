@@ -61,6 +61,7 @@
     "iosfwd": "cpp",
     "array": "cpp",
     "atomic": "cpp",
+<<<<<<< HEAD
     "bit": "cpp",
     "cctype": "cpp",
     "charconv": "cpp",
@@ -68,6 +69,13 @@
     "cmath": "cpp",
     "compare": "cpp",
     "concepts": "cpp",
+=======
+    "*.tcc": "cpp",
+    "cctype": "cpp",
+    "clocale": "cpp",
+    "cmath": "cpp",
+    "cstdarg": "cpp",
+>>>>>>> testing
     "cstddef": "cpp",
     "cstdint": "cpp",
     "cstdio": "cpp",
@@ -77,7 +85,10 @@
     "cwchar": "cpp",
     "cwctype": "cpp",
     "deque": "cpp",
+<<<<<<< HEAD
     "string": "cpp",
+=======
+>>>>>>> testing
     "unordered_map": "cpp",
     "vector": "cpp",
     "exception": "cpp",
@@ -87,14 +98,22 @@
     "memory": "cpp",
     "memory_resource": "cpp",
     "numeric": "cpp",
+<<<<<<< HEAD
     "optional": "cpp",
     "random": "cpp",
     "string_view": "cpp",
+=======
+    "random": "cpp",
+    "string": "cpp",
+>>>>>>> testing
     "system_error": "cpp",
     "tuple": "cpp",
     "type_traits": "cpp",
     "utility": "cpp",
+<<<<<<< HEAD
     "format": "cpp",
+=======
+>>>>>>> testing
     "fstream": "cpp",
     "initializer_list": "cpp",
     "iomanip": "cpp",
@@ -102,6 +121,7 @@
     "istream": "cpp",
     "limits": "cpp",
     "new": "cpp",
+<<<<<<< HEAD
     "numbers": "cpp",
     "ostream": "cpp",
     "span": "cpp",
@@ -111,5 +131,12 @@
     "text_encoding": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp"
+=======
+    "ostream": "cpp",
+    "sstream": "cpp",
+    "stdexcept": "cpp",
+    "streambuf": "cpp",
+    "typeinfo": "cpp"
+>>>>>>> testing
   }
 }

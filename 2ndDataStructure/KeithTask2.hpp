@@ -10,6 +10,10 @@
 #include <limits>
 #include <cstdlib>
 
+// Forward declarations
+class PlayerQueue;
+class GroupManager;
+
 // Player structure
 struct Player {
     char name[50];
@@ -47,7 +51,7 @@ const int MAX_MEMBERS_PER_GROUP = 5;
 // Forward declarations
 class GroupManager;
 
-// Function declarations for CSV operations
+// Function declarations for CSV operations - implemented in CSVOperations.hpp
 void load_checkedin_csv(char data[][8][120], int& rowCount);
 void write_checkedin_csv(char data[][8][120], int rowCount);
 void display_checkedin_csv();
@@ -153,6 +157,7 @@ public:
     void assignToGroups();
     void mergeSmallGroups();
     void displayGroupStatistics();
+    void createGroup();
     void organizeGroups();
     
     // Ensure all members of a group have the same group ID
@@ -190,7 +195,7 @@ public:
     }
 };
 
-// Function declarations and implementations
+// Function declarations - implemented in Utils.hpp
 
 // Split string by delimiter
 int split(const char* s, char delimiter, char tokens[][100], int max_tokens);
@@ -284,5 +289,11 @@ void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players)
 
 // Function declarations - Keep this declaration
 bool is_valid_email(const char* email);
+
+// Include all implementation files at the end to avoid circular dependencies
+#include "Utils.hpp"
+#include "CSVOperations.hpp"
+#include "PlayerQueue.hpp"
+#include "GroupManager.hpp"
 
 #endif // KEITH_TASK2_HPP
