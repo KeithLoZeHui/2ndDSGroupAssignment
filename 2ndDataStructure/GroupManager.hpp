@@ -26,31 +26,30 @@ void GroupManager::assignToGroups() {
     
     // First pass: collect all group IDs and count members
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players
-        if (strcmp(data[i][5], "Yes") == 0) continue;
+        // Skip withdrawn players (Index 6) or players without a group (Index 7)
+        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
         
-        // If player has a group ID
-        if (data[i][6][0] != '\0') {
-            bool found = false;
-            for (int j = 0; j < groupCount; j++) {
-                if (strcmp(groupIDs[j], data[i][6]) == 0) {
-                    groupCounts[j]++;
-                    found = true;
-                    break;
-                }
+        bool found = false;
+        for (int j = 0; j < groupCount; j++) {
+            // GroupID is index 7
+            if (strcmp(groupIDs[j], data[i][7]) == 0) {
+                groupCounts[j]++;
+                found = true;
+                break;
             }
+        }
+        
+        // New group found
+        if (!found && groupCount < MAX_GROUPS) {
+            strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
+            groupIDs[groupCount][9] = '\0';
             
-            // New group found
-            if (!found && groupCount < MAX_GROUPS) {
-                strncpy(groupIDs[groupCount], data[i][6], 9);
-                groupIDs[groupCount][9] = '\0';
-                
-                strncpy(groupNames[groupCount], data[i][7], 49);
-                groupNames[groupCount][49] = '\0';
-                
-                groupCounts[groupCount] = 1;
-                groupCount++;
-            }
+            // GroupName is index 8
+            strncpy(groupNames[groupCount], data[i][8], 49);
+            groupNames[groupCount][49] = '\0';
+            
+            groupCounts[groupCount] = 1;
+            groupCount++;
         }
     }
     
@@ -63,20 +62,20 @@ void GroupManager::assignToGroups() {
     
     // Second pass: assign players without groups to existing groups that aren't full
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players or players already in a group
-        if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] != '\0') continue;
+        // Skip withdrawn players (Index 6) or players already in a group (Index 7)
+        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
         
         // Find a group with less than MAX_MEMBERS_PER_GROUP members
         bool assigned = false;
         for (int j = 0; j < groupCount; j++) {
             // Check if this group is full using the new function
             if (!is_group_full(groupIDs[j], data, rowCount)) {
-                // Assign to this group
-                strncpy(data[i][6], groupIDs[j], 119);
-                data[i][6][119] = '\0';
-                
-                strncpy(data[i][7], groupNames[j], 119);
+                // Assign to this group (GroupID is index 7, GroupName is index 8)
+                strncpy(data[i][7], groupIDs[j], 119);
                 data[i][7][119] = '\0';
+                
+                strncpy(data[i][8], groupNames[j], 119);
+                data[i][8][119] = '\0';
                 
                 groupCounts[j]++;
                 assigned = true;
@@ -98,12 +97,12 @@ void GroupManager::assignToGroups() {
             char newGroupName[50];
             std::cin.getline(newGroupName, 50);
             
-            // Assign to new group
-            strncpy(data[i][6], newGroupID, 119);
-            data[i][6][119] = '\0';
-            
-            strncpy(data[i][7], newGroupName, 119);
+            // Assign to new group (GroupID is index 7, GroupName is index 8)
+            strncpy(data[i][7], newGroupID, 119);
             data[i][7][119] = '\0';
+            
+            strncpy(data[i][8], newGroupName, 119);
+            data[i][8][119] = '\0';
             
             // Add to our tracking arrays
             strncpy(groupIDs[groupCount], newGroupID, 9);
@@ -149,14 +148,15 @@ void GroupManager::mergeSmallGroups() {
     
     // First pass: collect all group IDs and count members
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players
-        if (strcmp(data[i][5], "Yes") == 0) continue;
+        // Skip withdrawn players (Index 6)
+        if (strcmp(data[i][6], "Yes") == 0) continue;
         
-        // If player has a group ID
-        if (data[i][6][0] != '\0') {
+        // If player has a group ID (Index 7)
+        if (data[i][7][0] != '\0') {
             bool found = false;
             for (int j = 0; j < groupCount; j++) {
-                if (strcmp(groupIDs[j], data[i][6]) == 0) {
+                // GroupID is index 7
+                if (strcmp(groupIDs[j], data[i][7]) == 0) {
                     groupCounts[j]++;
                     found = true;
                     break;
@@ -165,10 +165,10 @@ void GroupManager::mergeSmallGroups() {
             
             // New group found
             if (!found && groupCount < MAX_GROUPS) {
-                strncpy(groupIDs[groupCount], data[i][6], 9);
+                strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
                 groupIDs[groupCount][9] = '\0';
                 
-                strncpy(groupNames[groupCount], data[i][7], 49);
+                strncpy(groupNames[groupCount], data[i][8], 49); // GroupName is index 8
                 groupNames[groupCount][49] = '\0';
                 
                 groupCounts[groupCount] = 1;
@@ -242,23 +242,23 @@ void GroupManager::mergeSmallGroups() {
                     std::cin.getline(targetGroupName, 50);
                 }
                 
-                // Update all members of the second group to the target group
+                // Update all members of the second group to the target group (Adjusted indices)
                 for (int k = 0; k < rowCount; k++) {
-                    if (strcmp(data[k][5], "Yes") != 0 && strcmp(data[k][6], groupIDs[j]) == 0) {
-                        strncpy(data[k][6], targetGroupID, 119);
-                        data[k][6][119] = '\0';
-                        
-                        strncpy(data[k][7], targetGroupName, 119);
+                    if (strcmp(data[k][6], "Yes") != 0 && strcmp(data[k][7], groupIDs[j]) == 0) { // Withdrawn is index 6, GroupID is index 7
+                        strncpy(data[k][7], targetGroupID, 119); // GroupID is index 7
                         data[k][7][119] = '\0';
+                        
+                        strncpy(data[k][8], targetGroupName, 119); // GroupName is index 8
+                        data[k][8][119] = '\0';
                     }
                 }
                 
-                // Update the first group's name if needed
+                // Update the first group's name if needed (Adjusted indices)
                 if (choice != 1) {
                     for (int k = 0; k < rowCount; k++) {
-                        if (strcmp(data[k][5], "Yes") != 0 && strcmp(data[k][6], groupIDs[i]) == 0) {
-                            strncpy(data[k][7], targetGroupName, 119);
-                            data[k][7][119] = '\0';
+                        if (strcmp(data[k][6], "Yes") != 0 && strcmp(data[k][7], groupIDs[i]) == 0) { // Withdrawn is index 6, GroupID is index 7
+                            strncpy(data[k][8], targetGroupName, 119); // GroupName is index 8
+                            data[k][8][119] = '\0';
                         }
                     }
                 }
@@ -380,8 +380,8 @@ void GroupManager::createGroup() {
         int availableCount = 0;
         
         for (int i = 0; i < rowCount; i++) {
-            // Skip withdrawn players or players already in a group
-            if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] != '\0') continue;
+            // Skip withdrawn players (Index 6) or players already in a group (Index 7)
+            if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
             
             std::cout << ++availableCount << ". " << data[i][1] << " (ID: " << data[i][0] << ")\n";
         }
@@ -405,15 +405,17 @@ void GroupManager::createGroup() {
             // Find the player in the data
             bool found = false;
             for (int i = 0; i < rowCount; i++) {
-                if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] != '\0') continue;
+                // Skip withdrawn players (Index 6) or players already in a group (Index 7)
+                if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
                 
+                // PlayerName is index 1
                 if (strcmp(data[i][1], playerName) == 0) {
-                    // Assign to this group
-                    strncpy(data[i][6], groupID, 119);
-                    data[i][6][119] = '\0';
-                    
-                    strncpy(data[i][7], groupName, 119);
+                    // Assign to this group (GroupID is index 7, GroupName is index 8)
+                    strncpy(data[i][7], groupID, 119);
                     data[i][7][119] = '\0';
+                    
+                    strncpy(data[i][8], groupName, 119);
+                    data[i][8][119] = '\0';
                     
                     playerCount++;
                     found = true;
@@ -489,20 +491,22 @@ void GroupManager::countGroups(int& groupCount, int groupSizes[]) {
     
     // Count groups and their sizes
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players or players without a group
-        if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] == '\0') continue;
+        // Skip withdrawn players (Index 6) or players without a group (Index 7)
+        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
         
         bool found = false;
         for (int j = 0; j < groupCount; j++) {
-            if (strcmp(groupIDs[j], data[i][6]) == 0) {
+            // GroupID is index 7
+            if (strcmp(groupIDs[j], data[i][7]) == 0) {
                 groupSizes[j]++;
                 found = true;
                 break;
             }
         }
         
+        // If not found, add to unique groups
         if (!found && groupCount < MAX_GROUPS) {
-            strncpy(groupIDs[groupCount], data[i][6], 9);
+            strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
             groupIDs[groupCount][9] = '\0';
             groupSizes[groupCount] = 1;
             groupCount++;

@@ -73,14 +73,14 @@ bool is_id_unique(const char* id, Player* arr, int front, int rear) {
 }
 
 // Function to check if a group is full
-bool is_group_full(const char* groupID, char data[][8][120], int rowCount) {
+bool is_group_full(const char* groupID, char data[][9][120], int rowCount) {
     int count = 0;
     for (int i = 0; i < rowCount; i++) {
         // Skip withdrawn players
-        if (strcmp(data[i][5], "Yes") == 0) continue;
+        if (strcmp(data[i][6], "Yes") == 0) continue;
         
         // Count players in this group
-        if (strcmp(data[i][6], groupID) == 0) {
+        if (strcmp(data[i][7], groupID) == 0) {
             count++;
             if (count >= MAX_MEMBERS_PER_GROUP) {
                 return true;
@@ -125,11 +125,12 @@ void generateSequentialPlayerID(char* output) {
     if (file.is_open()) {
         file.getline(line, 500); // Skip header
         while (file.getline(line, 500)) {
-            char cols[8][100];
-            int num_cols = split(line, ',', cols, 8);
+            char cols[9][100]; // Increased to handle all columns
+            int num_cols = split(line, ',', cols, 9);
 
             // Assuming PlayerID is in column 0
             if (num_cols >= 1 && strncmp(cols[0], "PLY", 3) == 0) {
+                // Extract the numeric part
                 int idNum = atoi(cols[0] + 3);
                 if (idNum > highestID) {
                     highestID = idNum;
@@ -139,8 +140,14 @@ void generateSequentialPlayerID(char* output) {
         file.close();
     }
 
+    // Debug output
+    std::cout << "debug\n";
+    
     int nextID = highestID + 1;
     sprintf(output, "PLY%03d", nextID);
+    
+    // Debug: Print the generated ID
+    std::cout << "Generated Player ID: " << output << "\n";
 }
 
 #endif // UTILS_HPP

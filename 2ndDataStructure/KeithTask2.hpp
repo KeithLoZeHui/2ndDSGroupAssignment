@@ -17,8 +17,8 @@ class GroupManager;
 // Player structure
 struct Player {
     char name[50];
-    char PlayerID[5]; // 4 chars + null terminator
-    char PlayerEmail[100];
+    char PlayerID[10]; // Changed to accommodate PLY000 format (6 chars + null)
+    char PlayerEmail[100]; // Restored email field
     int priority; // 1 = Early-bird, 2 = Wildcard, 3 = Normal
     char groupID[10]; // Auto-generated group ID
     char groupName[50]; // Group name
@@ -28,6 +28,7 @@ struct Player {
 struct PlayerCSV {
     int PlayerID;
     char PlayerName[50];
+    char PlayerEmail[100]; // Added email field
     char PriorityType[20];
     char RegistrationTime[25];
     char CheckInStatus[20];
@@ -52,15 +53,15 @@ const int MAX_MEMBERS_PER_GROUP = 5;
 class GroupManager;
 
 // Function declarations for CSV operations - implemented in CSVOperations.hpp
-void load_checkedin_csv(char data[][8][120], int& rowCount);
-void write_checkedin_csv(char data[][8][120], int rowCount);
+void load_checkedin_csv(char data[][9][120], int& rowCount);
+void write_checkedin_csv(char data[][9][120], int rowCount);
 void display_checkedin_csv();
 int count_checkedin_csv_rows();
 
 // Group management class
 class GroupManager {
 private:
-    char data[100][8][120]; // Array to store CSV data with GroupID and GroupName
+    char data[100][9][120]; // Array to store CSV data with PlayerEmail, GroupID and GroupName (Updated to 9 columns)
     int rowCount;
     
     // Helper methods
@@ -96,15 +97,15 @@ private:
         
         // First pass: collect all group IDs and names
         for (int i = 0; i < rowCount; i++) {
-            // Skip withdrawn players or players without a group
-            if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] == '\0') continue;
+            // Skip withdrawn players or players without a group (Adjusted index for Withdrawn and GroupID)
+            if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
             
             bool found = false;
             for (int j = 0; j < groupCount; j++) {
-                if (strcmp(groupInfos[j].groupID, data[i][6]) == 0) {
-                    // Group already exists, ensure group name is consistent
-                    if (groupInfos[j].groupName[0] == '\0' && data[i][7][0] != '\0') {
-                        strncpy(groupInfos[j].groupName, data[i][7], 49);
+                if (strcmp(groupInfos[j].groupID, data[i][7]) == 0) {
+                    // Group already exists, ensure group name is consistent (Adjusted index for GroupName)
+                    if (groupInfos[j].groupName[0] == '\0' && data[i][8][0] != '\0') {
+                        strncpy(groupInfos[j].groupName, data[i][8], 49);
                         groupInfos[j].groupName[49] = '\0';
                     }
                     groupInfos[j].hasMembers = true;
@@ -115,11 +116,11 @@ private:
             
             // New group found
             if (!found && groupCount < MAX_GROUPS) {
-                strncpy(groupInfos[groupCount].groupID, data[i][6], 9);
+                strncpy(groupInfos[groupCount].groupID, data[i][7], 9); // Adjusted index
                 groupInfos[groupCount].groupID[9] = '\0';
                 
-                if (data[i][7][0] != '\0') {
-                    strncpy(groupInfos[groupCount].groupName, data[i][7], 49);
+                if (data[i][8][0] != '\0') { // Adjusted index
+                    strncpy(groupInfos[groupCount].groupName, data[i][8], 49); // Adjusted index
                     groupInfos[groupCount].groupName[49] = '\0';
                 }
                 
@@ -130,17 +131,17 @@ private:
         
         // Second pass: ensure all members of each group have the same group ID and name
         for (int i = 0; i < rowCount; i++) {
-            // Skip withdrawn players or players without a group
-            if (strcmp(data[i][5], "Yes") == 0 || data[i][6][0] == '\0') continue;
+            // Skip withdrawn players or players without a group (Adjusted index)
+            if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
             
             for (int j = 0; j < groupCount; j++) {
-                if (strcmp(groupInfos[j].groupID, data[i][6]) == 0) {
-                    // Ensure group name is consistent
+                if (strcmp(groupInfos[j].groupID, data[i][7]) == 0) { // Adjusted index
+                    // Ensure group name is consistent (Adjusted index)
                     if (groupInfos[j].groupName[0] != '\0') {
-                        strncpy(data[i][7], groupInfos[j].groupName, 119);
-                        data[i][7][119] = '\0';
-                    } else if (data[i][7][0] != '\0') {
-                        strncpy(groupInfos[j].groupName, data[i][7], 49);
+                        strncpy(data[i][8], groupInfos[j].groupName, 119); // Adjusted index
+                        data[i][8][119] = '\0';
+                    } else if (data[i][8][0] != '\0') { // Adjusted index
+                        strncpy(groupInfos[j].groupName, data[i][8], 49); // Adjusted index
                         groupInfos[j].groupName[49] = '\0';
                     }
                     break;
@@ -152,7 +153,7 @@ private:
 public:
     GroupManager() : rowCount(0) {}
     
-    // Group management methods
+    // Group management methods (Updated function signatures)
     void countGroups(int& groupCount, int groupSizes[]);
     void assignToGroups();
     void mergeSmallGroups();
@@ -160,32 +161,32 @@ public:
     void createGroup();
     void organizeGroups();
     
-    // Ensure all members of a group have the same group ID
+    // Ensure all members of a group have the same group ID (Updated function signature and indices)
     void ensureSameGroupId(const char* groupID, const char* groupName) {
         // If group ID is empty, nothing to do
         if (groupID[0] == '\0') return;
         
         for (int i = 0; i < rowCount; i++) {
-            // Skip this entry if it's withdrawn
-            if (strcmp(data[i][5], "Yes") == 0) continue;
+            // Skip this entry if it's withdrawn (Adjusted index)
+            if (strcmp(data[i][6], "Yes") == 0) continue;
             
-            // If this player has the same group ID, make sure it's exactly the same string
-            if (data[i][6][0] != '\0' && strcmp(data[i][6], groupID) != 0) {
-                // Check if this player is already in another group
+            // If this player has the same group ID, make sure it's exactly the same string (Adjusted index)
+            if (data[i][7][0] != '\0' && strcmp(data[i][7], groupID) != 0) {
+                // Check if this player is already in another group (Adjusted index)
                 bool found_match = false;
                 for (int j = 0; j < rowCount; j++) {
-                    if (i != j && strcmp(data[j][5], "Yes") != 0 && strcmp(data[i][6], data[j][6]) == 0) {
+                    if (i != j && strcmp(data[j][6], "Yes") != 0 && strcmp(data[i][7], data[j][7]) == 0) { // Adjusted indices
                         found_match = true;
                         break;
                     }
                 }
                 
-                // If not in another group, update to the new group ID and group name
+                // If not in another group, update to the new group ID and group name (Adjusted indices)
                 if (!found_match) {
-                    strncpy(data[i][6], groupID, 119);
-                    data[i][6][119] = '\0';
-                    strncpy(data[i][7], groupName, 119);
+                    strncpy(data[i][7], groupID, 119); // Adjusted index
                     data[i][7][119] = '\0';
+                    strncpy(data[i][8], groupName, 119); // Adjusted index
+                    data[i][8][119] = '\0';
                 }
             }
         }
@@ -195,7 +196,7 @@ public:
     }
 };
 
-// Function declarations - implemented in Utils.hpp
+// Function declarations - implemented in Utils.hpp (Updated function signatures)
 
 // Split string by delimiter
 int split(const char* s, char delimiter, char tokens[][100], int max_tokens);
@@ -206,14 +207,14 @@ void generateRandomID(char* output, int length);
 // Count rows in checked-in CSV
 int count_checkedin_csv_rows();
 
-// Load checked-in CSV data into array
-void load_checkedin_csv(char arr[][8][120], int& n);
+// Load checked-in CSV data into array (Updated function signature)
+void load_checkedin_csv(char arr[][9][120], int& n);
 
-// Write array data to checked-in CSV
-void write_checkedin_csv(char arr[][8][120], int n);
+// Write array data to checked-in CSV (Updated function signature)
+void write_checkedin_csv(char arr[][9][120], int n);
 
-// Ensure same group ID for all members
-void ensure_same_group_id(const char* groupID, const char* groupName, char arr[][8][120], int n);
+// Ensure same group ID for all members (Updated function signature)
+void ensure_same_group_id(const char* groupID, const char* groupName, char arr[][9][120], int n);
 
 // Display checked-in players from CSV
 void display_checkedin_csv();
@@ -252,13 +253,16 @@ public:
     bool is_valid_id(const char* s);
     bool is_valid_email(const char* s);
     bool is_duplicate_in_csv(const char* filename, const char* playerID, const char* email);
-    int count_players_in_group(const char* groupID);
-    bool can_add_to_group(const char* groupID, int numNewPlayers);
+    
+    // Updated function signatures to use 9-column array
+    int count_players_in_group(const char* groupID); // This one reads CSV
+    bool can_add_to_group(const char* groupID, int numNewPlayers); // This one calls count_players_in_group
+    bool is_group_id_unique(const char* groupID); // This one reads CSV
+
     void enqueue();
     void dequeue();
     void withdraw(const char* name);
     void replace(const char* oldName, const char* newName, int priority);
-    bool is_group_id_unique(const char* groupID);
     void display() {
         if (isEmpty()) {
             std::cout << "Queue is empty!\n";
@@ -286,7 +290,7 @@ public:
     }
 };
 
-// Function declarations
+// Function declarations (Updated function signatures where necessary)
 PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players);
 void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players);
 
@@ -295,7 +299,7 @@ bool is_valid_email(const char* email);
 
 #endif // KEITH_TASK2_HPP
 
-// Include all implementation files at the end to avoid circular dependencies
+// Include all implementation files
 #include "Utils.hpp"
 #include "CSVOperations.hpp"
 #include "PlayerQueue.hpp"

@@ -8,8 +8,9 @@ int main() {
     int choice;
     do {
         cout << "\nTask Selection Menu\n";
-        cout << "1. Run Keith's Task 2\n";
-        cout << "2. Run Task 1\n";
+        cout << "1. Run Task 1\n";
+        cout << "2. Run Task 2\n";
+        cout << "3. Run Task 3\n";
         cout << "0. Exit\n";
         cout << "Enter choice: ";
         cin >> choice;
@@ -20,13 +21,16 @@ int main() {
                 cout << "Exiting program. Goodbye!\n";
                 break;
             case 1:
-                system("KeithLoZeHuiTask2.exe");
-                break;
-            case 2:
                 system("Task1.exe");
                 break;
+            case 2:
+                system("KeithLoZeHuiTask2.exe");
+                break;
+            case 3:
+                system("Angeltask.exe");
+                break;
             default:
-                cout << "Invalid choice! Please enter 0 or 1.\n";
+                cout << "Invalid choice! Please enter a number between 0 and 3.\n";
         }
     } while (choice != 0);
     

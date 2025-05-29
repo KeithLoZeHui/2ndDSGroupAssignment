@@ -43,11 +43,11 @@ bool PlayerQueue::is_duplicate_in_csv(const char* filename, const char* playerID
     file.getline(line, 500); // Skip header
     
     while (file.getline(line, 500)) {
-        char cols[8][100];
-        int num_cols = split(line, ',', cols, 8);
+        char cols[9][100];
+        int num_cols = split(line, ',', cols, 9);
         
-        // Check for matching ID or email
-        if (strcmp(cols[0], playerID) == 0) {
+        // Check for matching ID or email (Indices for ID and Email are now 0 and 2 respectively)
+        if (strcmp(cols[0], playerID) == 0 || strcmp(cols[2], email) == 0) {
             return true;
         }
     }
@@ -65,11 +65,11 @@ int PlayerQueue::count_players_in_group(const char* groupID) {
     
     int count = 0;
     while (file.getline(line, 500)) {
-        char cols[8][100];
-        int num_cols = split(line, ',', cols, 8);
+        char cols[9][100];
+        int num_cols = split(line, ',', cols, 9);
         
-        // Check if player is in this group and not withdrawn
-        if (num_cols >= 7 && strcmp(cols[5], "No") == 0 && strcmp(cols[6], groupID) == 0) {
+        // Check if player is in this group and not withdrawn (Adjusted indices)
+        if (num_cols >= 7 && strcmp(cols[6], "No") == 0 && strcmp(cols[7], groupID) == 0) {
             count++;
         }
     }
@@ -159,16 +159,7 @@ void PlayerQueue::enqueue() {
             // Get player details
             std::cout << "Enter player name: ";
             std::cin.getline(groupMembers[memberIndex].name, 50);
-            
-            // Generate a sequential player ID (Changed from random)
-            generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
-            
-            // Ensure ID is unique in the queue (This check might be less critical with sequential IDs but keep for safety)
-            while (!is_id_unique(groupMembers[memberIndex].PlayerID, arr, front, rear)) {
-                // If somehow not unique, generate next sequential ID
-                generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
-            }
-            
+
             // Get email
             bool validEmail = false;
             while (!validEmail) {
@@ -180,6 +171,14 @@ void PlayerQueue::enqueue() {
                 } else {
                     std::cout << "Invalid email format. Please try again.\n";
                 }
+            }
+            
+            // Generate a sequential player ID
+            generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
+            
+            // Ensure ID is unique in the queue (Less critical with sequential but keep)
+            while (!is_id_unique(groupMembers[memberIndex].PlayerID, arr, front, rear)) {
+                 generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
             }
             
             // Get priority
@@ -202,7 +201,7 @@ void PlayerQueue::enqueue() {
         char groupName[50];
         
         // Check if creating a new group is possible
-        char existing_arr[100][8][120];
+        char existing_arr[100][9][120];
         int existing_n = 0;
         load_checkedin_csv(existing_arr, existing_n);
         
@@ -213,13 +212,13 @@ void PlayerQueue::enqueue() {
             if(existing_arr[i][6][0] != '\0' && strcmp(existing_arr[i][5], "No") == 0) {
                 bool found = false;
                 for(int j = 0; j < currentGroupCount; ++j) {
-                    if(strcmp(uniqueGroups[j], existing_arr[i][6]) == 0) {
+                    if(strcmp(uniqueGroups[j], existing_arr[i][7]) == 0) {
                         found = true;
                         break;
                     }
                 }
                 if(!found && currentGroupCount < MAX_GROUPS) {
-                    strncpy(uniqueGroups[currentGroupCount], existing_arr[i][6], 9);
+                    strncpy(uniqueGroups[currentGroupCount], existing_arr[i][7], 9);
                     uniqueGroups[currentGroupCount][9] = '\0';
                     currentGroupCount++;
                 }
@@ -241,10 +240,10 @@ void PlayerQueue::enqueue() {
                 
                 // Find the group name
                 for(int j = 0; j < existing_n; ++j) {
-                    if(strcmp(existing_arr[j][6], groupID) == 0 && strcmp(existing_arr[j][5], "No") == 0) {
-                        strncpy(groupName, existing_arr[j][7], 49);
+                    if(strcmp(existing_arr[j][7], groupID) == 0 && strcmp(existing_arr[j][5], "No") == 0) {
+                        strncpy(groupName, existing_arr[j][8], 49);
                         groupName[49] = '\0';
-                        // **Debug:** Print the group name found
+                        // **Debug:** Print the group name found (Adjusted index)
                         std::cout << "Debug: Found existing group name: " << groupName << " for ID: " << groupID << "\n";
                         break;
                     }
@@ -264,7 +263,6 @@ void PlayerQueue::enqueue() {
             
             std::cout << "Debug: Generating unique group ID...\n";
             do {
-                // Use sequential ID generator for group ID
                 generateSequentialGroupID(groupID);
                 unique = is_group_id_unique(groupID);
                 retries++;
@@ -336,16 +334,7 @@ void PlayerQueue::enqueue() {
         // Get player details
         std::cout << "Enter player name: ";
         std::cin.getline(p.name, 50);
-        
-        // Generate a sequential player ID (Changed from random)
-        generateSequentialPlayerID(p.PlayerID);
-        
-        // Ensure ID is unique in the queue (This check might be less critical with sequential IDs but keep for safety)
-        while (!is_id_unique(p.PlayerID, arr, front, rear)) {
-             // If somehow not unique, generate next sequential ID
-            generateSequentialPlayerID(p.PlayerID);
-        }
-        
+
         // Get email
         bool validEmail = false;
         while (!validEmail) {
@@ -357,6 +346,14 @@ void PlayerQueue::enqueue() {
             } else {
                 std::cout << "Invalid email format. Please try again.\n";
             }
+        }
+        
+        // Generate a sequential player ID
+        generateSequentialPlayerID(p.PlayerID);
+        
+        // Ensure ID is unique in the queue (Less critical with sequential but keep)
+        while (!is_id_unique(p.PlayerID, arr, front, rear)) {
+             generateSequentialPlayerID(p.PlayerID);
         }
         
         // Get priority
@@ -385,7 +382,7 @@ void PlayerQueue::enqueue() {
         
         if (joinGroup == 'y' || joinGroup == 'Y') {
             // Load existing groups from CSV
-            char arr[100][8][120];
+            char arr[100][9][120];
             int n = 0;
             load_checkedin_csv(arr, n);
             
@@ -401,11 +398,11 @@ void PlayerQueue::enqueue() {
             // First pass: collect unique groups and their sizes
             for (int i = 0; i < n; i++) {
                 // Skip withdrawn players or players without a group
-                if (strcmp(arr[i][5], "Yes") == 0 || arr[i][6][0] == '\0') continue;
+                if (strcmp(arr[i][6], "Yes") == 0 || arr[i][7][0] == '\0') continue;
                 
                 bool found = false;
                 for (int j = 0; j < uniqueGroupCount; j++) {
-                    if (strcmp(uniqueGroups[j][0], arr[i][6]) == 0) {
+                    if (strcmp(uniqueGroups[j][0], arr[i][7]) == 0) {
                         groupSizes[j]++;
                         found = true;
                         break;
@@ -413,10 +410,10 @@ void PlayerQueue::enqueue() {
                 }
                 
                 if (!found && uniqueGroupCount < MAX_GROUPS) {
-                    strncpy(uniqueGroups[uniqueGroupCount][0], arr[i][6], 119);
+                    strncpy(uniqueGroups[uniqueGroupCount][0], arr[i][7], 119);
                     uniqueGroups[uniqueGroupCount][0][119] = '\0';
                     
-                    strncpy(uniqueGroups[uniqueGroupCount][1], arr[i][7], 119);
+                    strncpy(uniqueGroups[uniqueGroupCount][1], arr[i][8], 119);
                     uniqueGroups[uniqueGroupCount][1][119] = '\0';
                     
                     groupSizes[uniqueGroupCount] = 1;
@@ -468,7 +465,7 @@ void PlayerQueue::enqueue() {
         // If not assigned to an existing group, check for incomplete groups
         if (!assigned) {
             // Load existing groups from CSV
-            char arr[100][8][120];
+            char arr[100][9][120];
             int n = 0;
             load_checkedin_csv(arr, n);
             
@@ -480,11 +477,11 @@ void PlayerQueue::enqueue() {
             // First pass: collect all unique groups and their sizes
             for (int i = 0; i < n; i++) {
                 // Skip withdrawn players or players without a group
-                if (strcmp(arr[i][5], "Yes") == 0 || arr[i][6][0] == '\0') continue;
+                if (strcmp(arr[i][6], "Yes") == 0 || arr[i][7][0] == '\0') continue;
                 
                 bool found = false;
                 for (int j = 0; j < uniqueGroupCount; j++) {
-                    if (strcmp(uniqueGroups[j][0], arr[i][6]) == 0) {
+                    if (strcmp(uniqueGroups[j][0], arr[i][7]) == 0) {
                         found = true;
                         groupSizes[j]++;
                         break;
@@ -493,10 +490,10 @@ void PlayerQueue::enqueue() {
                 
                 // If not found, add to unique groups
                 if (!found && uniqueGroupCount < MAX_GROUPS) {
-                    strncpy(uniqueGroups[uniqueGroupCount][0], arr[i][6], 119);
+                    strncpy(uniqueGroups[uniqueGroupCount][0], arr[i][7], 119);
                     uniqueGroups[uniqueGroupCount][0][119] = '\0';
                     
-                    strncpy(uniqueGroups[uniqueGroupCount][1], arr[i][7], 119);
+                    strncpy(uniqueGroups[uniqueGroupCount][1], arr[i][8], 119);
                     uniqueGroups[uniqueGroupCount][1][119] = '\0';
                     
                     groupSizes[uniqueGroupCount] = 1;
@@ -511,7 +508,7 @@ void PlayerQueue::enqueue() {
                     strncpy(groupID, uniqueGroups[i][0], 9);
                     groupID[9] = '\0';
 
-                    // **Fix:** Copy the group name as well
+                    // Copy the group name as well
                     strncpy(groupName, uniqueGroups[i][1], 49);
                     groupName[49] = '\0';
 
