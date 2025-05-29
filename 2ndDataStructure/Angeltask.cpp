@@ -2,11 +2,11 @@
 #include <string>
 #include <ctime>
 #include <fstream>
-#include "Task2/KeithTask2.hpp"
-#include "Task2/CSVOperations.hpp"
-#include "Task2/Utils.hpp"
-#include "Task2/PlayerQueue.hpp"
-#include "Task2/GroupManager.hpp"
+#include "KeithTask2.hpp"
+#include "CSVOperations.hpp"
+#include "Utils.hpp"
+#include "PlayerQueue.hpp"
+#include "GroupManager.hpp"
 
 // Stores spectator information including personal details and status
 struct SpectatorInfo {
@@ -207,12 +207,7 @@ void demonstrateTask2() {
     
     // Load players from CheckedIn.csv
     int numPlayers = 0;
-    PlayerCSV* players = loadPlayersFromCSV("Task2/CheckedIn.csv", numPlayers);
-    
-    if (numPlayers == 0) {
-        std::cout << "No players found in Task2/CheckedIn.csv. Using the main CheckedIn.csv file.\n";
-        players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
-    }
+    PlayerCSV* players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
     
     if (numPlayers == 0) {
         std::cout << "No players found in any CheckedIn.csv file.\n";
