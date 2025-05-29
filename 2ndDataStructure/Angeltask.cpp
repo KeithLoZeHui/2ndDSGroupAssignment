@@ -1,6 +1,12 @@
 #include <iostream>
 #include <string>
 #include <ctime>
+#include <fstream>
+#include "Task2/KeithTask2.hpp"
+#include "Task2/CSVOperations.hpp"
+#include "Task2/Utils.hpp"
+#include "Task2/PlayerQueue.hpp"
+#include "Task2/GroupManager.hpp"
 
 // Stores spectator information including personal details and status
 struct SpectatorInfo {
@@ -189,8 +195,115 @@ public:
     int getTotalCount() const { return vipCount + regularCount; }
 };
 
-// Test the StreamQueue implementation
+// Helper function to format player ID in PLY000 format
+char* formatPlayerID(int index, char* buffer) {
+    sprintf(buffer, "PLY%03d", index);
+    return buffer;
+}
+
+// Function to demonstrate Task 2 functionality
+void demonstrateTask2() {
+    std::cout << "\n=== Task 2: Tournament Registration & Player Queueing ===\n";
+    
+    // Load players from CheckedIn.csv
+    int numPlayers = 0;
+    PlayerCSV* players = loadPlayersFromCSV("Task2/CheckedIn.csv", numPlayers);
+    
+    if (numPlayers == 0) {
+        std::cout << "No players found in Task2/CheckedIn.csv. Using the main CheckedIn.csv file.\n";
+        players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
+    }
+    
+    if (numPlayers == 0) {
+        std::cout << "No players found in any CheckedIn.csv file.\n";
+        return;
+    }
+    
+    // Display all players from CSV
+    std::cout << "\n--- Loaded Players from CSV ---\n";
+    std::cout << "Total players loaded: " << numPlayers << "\n";
+    std::cout << "PlayerID | PlayerName | PriorityType | Group\n";
+    std::cout << "-------------------------------------------\n";
+    
+    // Count players by priority type
+    int earlyBirdCount = 0;
+    int wildcardCount = 0;
+    int normalCount = 0;
+    
+    for (int i = 0; i < numPlayers; i++) {
+        // Format the PlayerID as PLY followed by a 3-digit number
+        char formattedID[10];
+        sprintf(formattedID, "PLY%03d", i);
+        
+        std::cout << formattedID << " | " 
+                  << players[i].PlayerName << " | "
+                  << players[i].PriorityType << " | ";
+        
+        if (players[i].GroupID[0] != '\0') {
+            std::cout << players[i].GroupID << " (" << players[i].GroupName << ")";
+        } else {
+            std::cout << "No Group";
+        }
+        std::cout << "\n";
+        
+        // Count by priority type
+        if (strcmp(players[i].PriorityType, "Early-bird") == 0) {
+            earlyBirdCount++;
+        } else if (strcmp(players[i].PriorityType, "Wildcard") == 0) {
+            wildcardCount++;
+        } else if (strcmp(players[i].PriorityType, "Normal") == 0) {
+            normalCount++;
+        }
+    }
+    
+    // Display priority type statistics
+    std::cout << "\n--- Priority Type Statistics ---\n";
+    std::cout << "Early-bird players: " << earlyBirdCount << "\n";
+    std::cout << "Wildcard players: " << wildcardCount << "\n";
+    std::cout << "Normal players: " << normalCount << "\n";
+    
+    // Display group statistics
+    std::cout << "\n--- Group Statistics ---\n";
+    char processedGroups[MAX_GROUPS][10] = {{0}};
+    int groupCount = 0;
+    
+    for (int i = 0; i < numPlayers; i++) {
+        if (players[i].GroupID[0] == '\0') continue;
+        
+        bool groupProcessed = false;
+        for (int j = 0; j < groupCount; j++) {
+            if (strcmp(processedGroups[j], players[i].GroupID) == 0) {
+                groupProcessed = true;
+                break;
+            }
+        }
+        
+        if (!groupProcessed && groupCount < MAX_GROUPS) {
+            strcpy(processedGroups[groupCount], players[i].GroupID);
+            
+            // Count members in this group
+            int membersCount = 0;
+            for (int k = 0; k < numPlayers; k++) {
+                if (strcmp(players[k].GroupID, players[i].GroupID) == 0) {
+                    membersCount++;
+                }
+            }
+            
+            std::cout << "Group " << players[i].GroupID << " (" << players[i].GroupName 
+                      << "): " << membersCount << " members\n";
+            
+            groupCount++;
+        }
+    }
+    
+    // Clean up allocated memory
+    delete[] players;
+}
+
+// Test both the StreamQueue implementation and Task 2 functionality
 int main() {
+    // First demonstrate the original StreamQueue implementation
+    std::cout << "\n=== Original StreamQueue Implementation ===\n";
     // Initialize queue with capacity of 10 spectators
     StreamQueue queue(10);
 
@@ -220,6 +333,9 @@ int main() {
     // Demonstrate historical tracking of all spectators
     std::cout << "\n=== Complete Spectator History ===";
     queue.displaySpectatorHistory();
+    
+    // Now demonstrate Task 2 functionality
+    demonstrateTask2();
 
     return 0;
 }
