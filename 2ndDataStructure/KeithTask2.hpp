@@ -252,10 +252,13 @@ public:
     bool is_valid_id(const char* s);
     bool is_valid_email(const char* s);
     bool is_duplicate_in_csv(const char* filename, const char* playerID, const char* email);
+    int count_players_in_group(const char* groupID);
+    bool can_add_to_group(const char* groupID, int numNewPlayers);
     void enqueue();
     void dequeue();
     void withdraw(const char* name);
     void replace(const char* oldName, const char* newName, int priority);
+    bool is_group_id_unique(const char* groupID);
     void display() {
         if (isEmpty()) {
             std::cout << "Queue is empty!\n";
@@ -290,10 +293,10 @@ void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players)
 // Function declarations - Keep this declaration
 bool is_valid_email(const char* email);
 
+#endif // KEITH_TASK2_HPP
+
 // Include all implementation files at the end to avoid circular dependencies
 #include "Utils.hpp"
 #include "CSVOperations.hpp"
 #include "PlayerQueue.hpp"
 #include "GroupManager.hpp"
-
-#endif // KEITH_TASK2_HPP

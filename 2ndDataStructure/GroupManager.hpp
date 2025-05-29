@@ -69,7 +69,8 @@ void GroupManager::assignToGroups() {
         // Find a group with less than MAX_MEMBERS_PER_GROUP members
         bool assigned = false;
         for (int j = 0; j < groupCount; j++) {
-            if (groupCounts[j] < MAX_MEMBERS_PER_GROUP) {
+            // Check if this group is full using the new function
+            if (!is_group_full(groupIDs[j], data, rowCount)) {
                 // Assign to this group
                 strncpy(data[i][6], groupIDs[j], 119);
                 data[i][6][119] = '\0';
@@ -81,7 +82,8 @@ void GroupManager::assignToGroups() {
                 assigned = true;
                 
                 std::cout << "Assigned player " << data[i][1] << " to group " 
-                          << groupNames[j] << " [" << groupIDs[j] << "]\n";
+                          << groupNames[j] << " [" << groupIDs[j] << "] (" 
+                          << groupCounts[j] << "/" << MAX_MEMBERS_PER_GROUP << " members)\n";
                 break;
             }
         }
@@ -89,7 +91,7 @@ void GroupManager::assignToGroups() {
         // If no existing group has space, create a new group if possible
         if (!assigned && groupCount < MAX_GROUPS) {
             char newGroupID[10];
-            generateRandomID(newGroupID, 6);
+            generateSequentialGroupID(newGroupID);
             
             std::cout << "Creating new group with ID: " << newGroupID << "\n";
             std::cout << "Enter group name: ";
@@ -362,7 +364,7 @@ void GroupManager::createGroup() {
     
     // Generate a random group ID
     char groupID[10];
-    generateRandomID(groupID, 6);
+    generateSequentialGroupID(groupID);
     
     std::cout << "\nCreated group: " << groupName << " [" << groupID << "]\n";
     

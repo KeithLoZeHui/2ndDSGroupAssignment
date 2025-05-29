@@ -35,6 +35,7 @@ void generateRandomID(char* output, int length) {
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis(0, strlen(alphanum) - 1);
     
+    // Generate 'length' characters
     for (int i = 0; i < length; ++i)
         output[i] = alphanum[dis(gen)];
     output[length] = '\0';
@@ -69,6 +70,77 @@ bool is_id_unique(const char* id, Player* arr, int front, int rear) {
         }
     }
     return true;
+}
+
+// Function to check if a group is full
+bool is_group_full(const char* groupID, char data[][8][120], int rowCount) {
+    int count = 0;
+    for (int i = 0; i < rowCount; i++) {
+        // Skip withdrawn players
+        if (strcmp(data[i][5], "Yes") == 0) continue;
+        
+        // Count players in this group
+        if (strcmp(data[i][6], groupID) == 0) {
+            count++;
+            if (count >= MAX_MEMBERS_PER_GROUP) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Function to generate sequential group IDs (e.g., GRP000, GRP001)
+void generateSequentialGroupID(char* output) {
+    int highestID = -1;
+    std::ifstream file("CheckedIn.csv");
+    char line[500];
+
+    if (file.is_open()) {
+        file.getline(line, 500); // Skip header
+        while (file.getline(line, 500)) {
+            char cols[8][100];
+            int num_cols = split(line, ',', cols, 8);
+
+            if (num_cols >= 7 && strncmp(cols[6], "GRP", 3) == 0) {
+                int idNum = atoi(cols[6] + 3);
+                if (idNum > highestID) {
+                    highestID = idNum;
+                }
+            }
+        }
+        file.close();
+    }
+
+    int nextID = highestID + 1;
+    sprintf(output, "GRP%03d", nextID);
+}
+
+// Function to generate sequential player IDs (e.g., PLY000, PLY001)
+void generateSequentialPlayerID(char* output) {
+    int highestID = -1;
+    std::ifstream file("CheckedIn.csv");
+    char line[500];
+
+    if (file.is_open()) {
+        file.getline(line, 500); // Skip header
+        while (file.getline(line, 500)) {
+            char cols[8][100];
+            int num_cols = split(line, ',', cols, 8);
+
+            // Assuming PlayerID is in column 0
+            if (num_cols >= 1 && strncmp(cols[0], "PLY", 3) == 0) {
+                int idNum = atoi(cols[0] + 3);
+                if (idNum > highestID) {
+                    highestID = idNum;
+                }
+            }
+        }
+        file.close();
+    }
+
+    int nextID = highestID + 1;
+    sprintf(output, "PLY%03d", nextID);
 }
 
 #endif // UTILS_HPP

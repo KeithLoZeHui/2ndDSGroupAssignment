@@ -283,10 +283,9 @@ void replace_in_csv(const char* oldName, const char* newName, int priority) {
     
     // Create a new entry for the replacement player
     if (n < 100) { // Make sure we don't overflow the array
-        // Generate a unique player ID
-        char uniquePlayerID[20];
-        std::time_t now = std::time(nullptr);
-        sprintf(uniquePlayerID, "RPL_%d", static_cast<int>(now % 10000));
+        // Generate a sequential player ID (Changed from random)
+        char uniquePlayerID[10]; // Adjusted size to accommodate PLYxxx\0
+        generateSequentialPlayerID(uniquePlayerID);
         
         // Convert priority to string
         char priorityStr[20];
@@ -299,6 +298,7 @@ void replace_in_csv(const char* oldName, const char* newName, int priority) {
         
         // Get current timestamp
         char timeStr[25];
+        std::time_t now = std::time(nullptr);
         std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
         
         // Copy the new player data

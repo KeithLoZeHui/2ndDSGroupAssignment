@@ -55,6 +55,28 @@ bool PlayerQueue::is_duplicate_in_csv(const char* filename, const char* playerID
     return false;
 }
 
+// Count the number of players in a specific group
+int PlayerQueue::count_players_in_group(const char* groupID) {
+    std::ifstream file("CheckedIn.csv");
+    if (!file.is_open()) return 0;
+    
+    char line[500];
+    file.getline(line, 500); // Skip header
+    
+    int count = 0;
+    while (file.getline(line, 500)) {
+        char cols[8][100];
+        int num_cols = split(line, ',', cols, 8);
+        
+        // Check if player is in this group and not withdrawn
+        if (num_cols >= 7 && strcmp(cols[5], "No") == 0 && strcmp(cols[6], groupID) == 0) {
+            count++;
+        }
+    }
+    
+    return count;
+}
+
 // Constructor
 PlayerQueue::PlayerQueue(int initial_capacity) {
     capacity = initial_capacity;
@@ -66,6 +88,42 @@ PlayerQueue::PlayerQueue(int initial_capacity) {
 // Destructor
 PlayerQueue::~PlayerQueue() {
     delete[] arr;
+}
+
+bool PlayerQueue::is_group_id_unique(const char* groupID) {
+    std::ifstream file("CheckedIn.csv");
+    if (!file.is_open()) {
+        std::cout << "Debug: CheckedIn.csv not found or could not be opened. Group ID '" << groupID << "' is unique.\n";
+        return true; // If file doesn't exist or can't be opened, ID is unique
+    }
+    
+    char line[500];
+    file.getline(line, 500); // Skip header
+    
+    std::cout << "Debug: Checking for uniqueness of group ID '" << groupID << "' in CheckedIn.csv...\n";
+
+    while (file.getline(line, 500)) {
+        char cols[8][100];
+        int num_cols = split(line, ',', cols, 8);
+        
+        // Check for matching group ID (column 6) and ensure player is not withdrawn
+        if (num_cols >= 7 && strcmp(cols[5], "No") == 0 && strcmp(cols[6], groupID) == 0) {
+            std::cout << "Debug: Found matching group ID '" << groupID << "'. Not unique.\n";
+            file.close();
+            return false;
+        }
+    }
+    
+    file.close();
+    return true;
+}
+
+// Helper function to check if adding players to a group would exceed the limit
+bool PlayerQueue::can_add_to_group(const char* groupID, int numNewPlayers) {
+    if (groupID[0] == '\0') return true; // No group ID means can create new group
+    
+    int currentCount = count_players_in_group(groupID);
+    return (currentCount + numNewPlayers) <= MAX_MEMBERS_PER_GROUP;
 }
 
 void PlayerQueue::enqueue() {
@@ -102,12 +160,13 @@ void PlayerQueue::enqueue() {
             std::cout << "Enter player name: ";
             std::cin.getline(groupMembers[memberIndex].name, 50);
             
-            // Generate a random player ID
-            generateRandomID(groupMembers[memberIndex].PlayerID, 4);
+            // Generate a sequential player ID (Changed from random)
+            generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
             
-            // Ensure ID is unique in the queue
+            // Ensure ID is unique in the queue (This check might be less critical with sequential IDs but keep for safety)
             while (!is_id_unique(groupMembers[memberIndex].PlayerID, arr, front, rear)) {
-                generateRandomID(groupMembers[memberIndex].PlayerID, 4);
+                // If somehow not unique, generate next sequential ID
+                generateSequentialPlayerID(groupMembers[memberIndex].PlayerID);
             }
             
             // Get email
@@ -142,16 +201,91 @@ void PlayerQueue::enqueue() {
         char groupID[10];
         char groupName[50];
         
-        // Generate a random group ID
-        generateRandomID(groupID, 6);
+        // Check if creating a new group is possible
+        char existing_arr[100][8][120];
+        int existing_n = 0;
+        load_checkedin_csv(existing_arr, existing_n);
         
-        // Get group name
-        std::cout << "\n--- Group Information ---\n";
-        std::cout << "Enter group name: ";
-        std::cin.getline(groupName, 50);
+        // Check if we can create a new group
+        int currentGroupCount = 0;
+        char uniqueGroups[MAX_GROUPS][10];
+        for(int i = 0; i < existing_n; ++i) {
+            if(existing_arr[i][6][0] != '\0' && strcmp(existing_arr[i][5], "No") == 0) {
+                bool found = false;
+                for(int j = 0; j < currentGroupCount; ++j) {
+                    if(strcmp(uniqueGroups[j], existing_arr[i][6]) == 0) {
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found && currentGroupCount < MAX_GROUPS) {
+                    strncpy(uniqueGroups[currentGroupCount], existing_arr[i][6], 9);
+                    uniqueGroups[currentGroupCount][9] = '\0';
+                    currentGroupCount++;
+                }
+            }
+        }
+
+        if (currentGroupCount >= MAX_GROUPS) {
+            std::cout << "\nCannot create a new group. Maximum number of groups reached.\n";
+            std::cout << "Please register players individually to potentially fill existing incomplete groups.\n";
+            return;
+        }
+
+        // Check if we can add to an existing incomplete group
+        bool assignedToExisting = false;
+        for(int i = 0; i < currentGroupCount; ++i) {
+            if (can_add_to_group(uniqueGroups[i], groupSize)) {
+                strncpy(groupID, uniqueGroups[i], 9);
+                groupID[9] = '\0';
+                
+                // Find the group name
+                for(int j = 0; j < existing_n; ++j) {
+                    if(strcmp(existing_arr[j][6], groupID) == 0 && strcmp(existing_arr[j][5], "No") == 0) {
+                        strncpy(groupName, existing_arr[j][7], 49);
+                        groupName[49] = '\0';
+                        // **Debug:** Print the group name found
+                        std::cout << "Debug: Found existing group name: " << groupName << " for ID: " << groupID << "\n";
+                        break;
+                    }
+                }
+                
+                assignedToExisting = true;
+                std::cout << "Assigned to existing group: " << groupName << " [" << groupID << "]\n";
+                break;
+            }
+        }
+
+        if (!assignedToExisting) {
+            // Generate a new unique group ID with retry limit
+            const int MAX_RETRIES = 10;
+            int retries = 0;
+            bool unique = false;
+            
+            std::cout << "Debug: Generating unique group ID...\n";
+            do {
+                // Use sequential ID generator for group ID
+                generateSequentialGroupID(groupID);
+                unique = is_group_id_unique(groupID);
+                retries++;
+                
+                if (retries >= MAX_RETRIES) {
+                    std::cout << "Error: Could not generate a unique group ID after " << MAX_RETRIES << " attempts.\n";
+                    return;
+                }
+            } while (!unique);
+            
+            std::cout << "Debug: Unique group ID generated: " << groupID << "\n";
+            
+            // Get group name
+            std::cout << "\n--- Group Information ---\n";
+            std::cout << "Enter group name: ";
+            std::cin.getline(groupName, 50);
+            
+            std::cout << "\nCreated new group: " << groupName << " [" << groupID << "]\n";
+        }
         
-        std::cout << "\nCreated group: " << groupName << " [" << groupID << "]\n";
-        
+        std::cout << "Debug: Adding group members to queue...\n";
         // Assign group information to all members and add them to the queue
         for (int memberIndex = 0; memberIndex < groupSize; memberIndex++) {
             strncpy(groupMembers[memberIndex].groupID, groupID, 9);
@@ -166,16 +300,35 @@ void PlayerQueue::enqueue() {
             }
             
             int i = rear;
-            while (i >= front && arr[i].priority > groupMembers[memberIndex].priority) {
-                arr[i + 1] = arr[i];
+            // Ensure i is within valid bounds before accessing arr[i]
+            while (i >= front && i < capacity && arr[i].priority > groupMembers[memberIndex].priority) {
+                // Ensure arr[i+1] is within valid bounds before writing
+                if (i + 1 < capacity) {
+                    arr[i + 1] = arr[i];
+                } else {
+                    // This case should ideally not happen if resize works correctly,
+                    // but adding a safeguard can help debug.
+                    std::cerr << "Error: Attempting to write out of bounds during priority insertion.\n";
+                    // Depending on desired behavior, you might handle this differently,
+                    // e.g., return false, resize again, or exit.
+                    // For now, we'll just break the loop to prevent crash.
+                    break;
+                }
                 i--;
             }
-            arr[i + 1] = groupMembers[memberIndex];
-            rear++;
             
-            std::cout << "[FIFO] Player '" << groupMembers[memberIndex].name << "' registered in group '" 
-                      << groupName << "' with priority " << groupMembers[memberIndex].priority << ".\n";
+            // Ensure insertion index is within valid bounds
+            if (i + 1 >= front && i + 1 < capacity) {
+                arr[i + 1] = groupMembers[memberIndex];
+                rear++;
+            } else {
+                 std::cerr << "Error: Attempting to insert out of bounds during priority insertion.\n";
+                 // Handle error: Player not added to queue, or other error handling
+            }
+            
+            std::cout << "Debug: Player " << groupMembers[memberIndex].name << " added to queue.\n";
         }
+        std::cout << "Debug: Finished adding group members to queue.\n";
     } else {
         // Individual registration
         Player p;
@@ -184,12 +337,13 @@ void PlayerQueue::enqueue() {
         std::cout << "Enter player name: ";
         std::cin.getline(p.name, 50);
         
-        // Generate a random player ID
-        generateRandomID(p.PlayerID, 4);
+        // Generate a sequential player ID (Changed from random)
+        generateSequentialPlayerID(p.PlayerID);
         
-        // Ensure ID is unique in the queue
+        // Ensure ID is unique in the queue (This check might be less critical with sequential IDs but keep for safety)
         while (!is_id_unique(p.PlayerID, arr, front, rear)) {
-            generateRandomID(p.PlayerID, 4);
+             // If somehow not unique, generate next sequential ID
+            generateSequentialPlayerID(p.PlayerID);
         }
         
         // Get email
@@ -197,7 +351,7 @@ void PlayerQueue::enqueue() {
         while (!validEmail) {
             std::cout << "Enter player email: ";
             std::cin.getline(p.PlayerEmail, 100);
-            std::cout << "debug"<< std ::endl;
+            
             if (is_valid_email(p.PlayerEmail)) {
                 validEmail = true;
             } else {
@@ -242,21 +396,22 @@ void PlayerQueue::enqueue() {
             // Create a temporary array to store unique group IDs and names
             char uniqueGroups[MAX_GROUPS][2][120]; // [0] = ID, [1] = Name
             int uniqueGroupCount = 0;
+            int groupSizes[MAX_GROUPS] = {0};
             
+            // First pass: collect unique groups and their sizes
             for (int i = 0; i < n; i++) {
                 // Skip withdrawn players or players without a group
                 if (strcmp(arr[i][5], "Yes") == 0 || arr[i][6][0] == '\0') continue;
                 
-                // Check if this group is already in our unique groups list
                 bool found = false;
                 for (int j = 0; j < uniqueGroupCount; j++) {
                     if (strcmp(uniqueGroups[j][0], arr[i][6]) == 0) {
+                        groupSizes[j]++;
                         found = true;
                         break;
                     }
                 }
                 
-                // If not found, add to unique groups
                 if (!found && uniqueGroupCount < MAX_GROUPS) {
                     strncpy(uniqueGroups[uniqueGroupCount][0], arr[i][6], 119);
                     uniqueGroups[uniqueGroupCount][0][119] = '\0';
@@ -264,62 +419,49 @@ void PlayerQueue::enqueue() {
                     strncpy(uniqueGroups[uniqueGroupCount][1], arr[i][7], 119);
                     uniqueGroups[uniqueGroupCount][1][119] = '\0';
                     
+                    groupSizes[uniqueGroupCount] = 1;
                     uniqueGroupCount++;
                     groupsFound = true;
                 }
             }
             
+            // Display available groups that aren't full
             if (groupsFound) {
-                // Display unique groups
+                std::cout << "\nAvailable groups:\n";
                 for (int i = 0; i < uniqueGroupCount; i++) {
-                    std::cout << i+1 << ". " << uniqueGroups[i][1] << " [" << uniqueGroups[i][0] << "]\n";
-                }
-                
-                // Count members in each group
-                int groupSizes[MAX_GROUPS] = {0};
-                for (int i = 0; i < n; i++) {
-                    if (strcmp(arr[i][5], "Yes") == 0) continue; // Skip withdrawn players
-                    
-                    for (int j = 0; j < uniqueGroupCount; j++) {
-                        if (strcmp(arr[i][6], uniqueGroups[j][0]) == 0) {
-                            groupSizes[j]++;
-                            break;
-                        }
+                    if (groupSizes[i] < MAX_MEMBERS_PER_GROUP) {
+                        std::cout << i+1 << ". " << uniqueGroups[i][1] << " [" << uniqueGroups[i][0] 
+                                  << "] (" << groupSizes[i] << "/" << MAX_MEMBERS_PER_GROUP << " members)\n";
                     }
                 }
-                
-                // Ask which group to join
-                int groupChoice = 0;
-                while (groupChoice < 1 || groupChoice > uniqueGroupCount) {
-                    std::cout << "Enter group number to join (0 to create new group): ";
-                    std::cin >> groupChoice;
-                    std::cin.ignore(); // Clear the newline
-                    
-                    if (groupChoice == 0) {
-                        break;
-                    }
-                    
-                    if (groupChoice < 1 || groupChoice > uniqueGroupCount) {
-                        std::cout << "Invalid group number. Please try again.\n";
-                    } else if (groupSizes[groupChoice-1] >= MAX_MEMBERS_PER_GROUP) {
-                        std::cout << "This group is already full. Please choose another group.\n";
-                        groupChoice = 0; // Reset to invalid choice to prompt again
-                    }
-                }
-                
-                if (groupChoice > 0) {
-                    // Join existing group
-                    strncpy(groupID, uniqueGroups[groupChoice-1][0], 9);
+            }
+            
+            // Find an incomplete group with less than MAX_MEMBERS_PER_GROUP members
+            for (int i = 0; i < uniqueGroupCount; i++) {
+                if (groupSizes[i] < MAX_MEMBERS_PER_GROUP) {
+                    // Assign to this incomplete group
+                    strncpy(groupID, uniqueGroups[i][0], 9);
                     groupID[9] = '\0';
-                    
-                    strncpy(groupName, uniqueGroups[groupChoice-1][1], 49);
+
+                    // **Fix:** Copy the group name as well
+                    strncpy(groupName, uniqueGroups[i][1], 49);
                     groupName[49] = '\0';
-                    
+
                     assigned = true;
-                    std::cout << "Assigned to group: " << groupName << " [" << groupID << "]" << std::endl;
+                    std::cout << "Assigned to incomplete group: " << groupName << " [" << groupID << "] (" 
+                              << groupSizes[i] + 1 << "/" << MAX_MEMBERS_PER_GROUP << " members)\n";
+                    break;
                 }
-            } else {
-                std::cout << "No existing groups found.\n";
+            }
+            
+            if (!assigned) {
+                std::cout << "No available incomplete group. Creating new group.\n";
+                // Use sequential ID generator for group ID
+                generateSequentialGroupID(groupID);
+                std::cout << "Auto-generated Group ID: " << groupID << "\n";
+                
+                std::cout << "Enter group name: ";
+                std::cin.getline(groupName, 50);
             }
         }
         
@@ -335,12 +477,11 @@ void PlayerQueue::enqueue() {
             int groupSizes[MAX_GROUPS] = {0};
             int uniqueGroupCount = 0;
             
-            // First pass: collect all unique groups
+            // First pass: collect all unique groups and their sizes
             for (int i = 0; i < n; i++) {
                 // Skip withdrawn players or players without a group
                 if (strcmp(arr[i][5], "Yes") == 0 || arr[i][6][0] == '\0') continue;
                 
-                // Check if this group is already in our unique groups list
                 bool found = false;
                 for (int j = 0; j < uniqueGroupCount; j++) {
                     if (strcmp(uniqueGroups[j][0], arr[i][6]) == 0) {
@@ -369,32 +510,49 @@ void PlayerQueue::enqueue() {
                     // Assign to this incomplete group
                     strncpy(groupID, uniqueGroups[i][0], 9);
                     groupID[9] = '\0';
-                    
+
+                    // **Fix:** Copy the group name as well
                     strncpy(groupName, uniqueGroups[i][1], 49);
                     groupName[49] = '\0';
-                    
+
                     assigned = true;
-                    std::cout << "Assigned to incomplete group: " << groupID << " (" << groupName << ")" << std::endl;
+                    std::cout << "Assigned to incomplete group: " << groupName << " [" << groupID << "] (" 
+                              << groupSizes[i] + 1 << "/" << MAX_MEMBERS_PER_GROUP << " members)\n";
                     break;
                 }
             }
             
-            if (!assigned) {
+            if (!assigned && uniqueGroupCount < MAX_GROUPS) { // Ensure we don't exceed max groups
                 std::cout << "No available incomplete group. Creating new group.\n";
-                generateRandomID(groupID, 6); // Auto-generate group ID
+                // Use sequential ID generator for group ID
+                do {
+                    generateSequentialGroupID(groupID);
+                } while (!is_group_id_unique(groupID));
+                
                 std::cout << "Auto-generated Group ID: " << groupID << "\n";
                 
                 std::cout << "Enter group name: ";
                 std::cin.getline(groupName, 50);
+                
+                // Player will be assigned to this new group later in the function
+                assigned = true; // Mark as assigned to prevent creating another new group
+            } else if (!assigned) { // All groups full and cannot create new one
+                 std::cout << "No available incomplete group and cannot create a new one. Please try again later.\n";
             }
         }
         
         // Set group information
         p.priority = priority;
-        strncpy(p.groupID, groupID, 9);
-        p.groupID[9] = '\0';
-        strncpy(p.groupName, groupName, 49);
-        p.groupName[49] = '\0';
+        // Only assign group info if assigned to a group
+        if (assigned) {
+            strncpy(p.groupID, groupID, 9);
+            p.groupID[9] = '\0';
+            strncpy(p.groupName, groupName, 49);
+            p.groupName[49] = '\0';
+        } else { // If not assigned, set group info to empty
+            p.groupID[0] = '\0';
+            p.groupName[0] = '\0';
+        }
         
         // Insert player maintaining priority order
         int i = rear;
@@ -405,7 +563,11 @@ void PlayerQueue::enqueue() {
         arr[i + 1] = p;
         rear++;
         
-        std::cout << "[FIFO] Player '" << p.name << "' registered in group '" << p.groupID << "' with priority " << p.priority << ".\n";
+        std::cout << "[FIFO] Player '" << p.name << "' registered";
+        if (p.groupID[0] != '\0') {
+             std::cout << " in group '" << p.groupName << " [" << p.groupID << "]";
+        }
+        std::cout << " with priority " << p.priority << ".\n";
     }
 }
 
@@ -433,7 +595,16 @@ void PlayerQueue::dequeue() {
     // Create a unique player ID for the CSV
     char uniquePlayerID[20];
     // Ensure we have a truly unique ID by combining the player ID with a timestamp suffix
+    // Use the full player ID from the queue
     sprintf(uniquePlayerID, "%s_%d", arr[front].PlayerID, static_cast<int>(now % 10000));
+    
+    // Check if adding this player would exceed the group limit in the CSV
+    int currentGroupSize = 0;
+    if (arr[front].groupID[0] != '\0') {
+        currentGroupSize = count_players_in_group(arr[front].groupID);
+    }
+    
+    bool assignedToGroup = (arr[front].groupID[0] != '\0' && currentGroupSize < MAX_MEMBERS_PER_GROUP);
     
     if (file_exists("CheckedIn.csv")) {
         // If CheckedIn.csv exists, add player to it
@@ -443,9 +614,15 @@ void PlayerQueue::dequeue() {
                 << priorityStr << ","
                 << timeStr << ","
                 << "Checked-in,"
-                << "No,"
-                << arr[front].groupID << ","
-                << arr[front].groupName << "\n";
+                << "No,";
+        
+        // Only write group ID and name if the player was assigned to a group
+        if (arr[front].groupID[0] != '\0') {
+            outfile << arr[front].groupID << ","
+                    << arr[front].groupName << "\n";
+        } else {
+            outfile << ",\n"; // Write empty group ID and name
+        }
         outfile.close();
     } else {
         // Create new CheckedIn.csv file with header
@@ -456,9 +633,15 @@ void PlayerQueue::dequeue() {
                 << priorityStr << ","
                 << timeStr << ","
                 << "Checked-in,"
-                << "No,"
-                << arr[front].groupID << ","
-                << arr[front].groupName << "\n";
+                << "No,";
+        
+        // Only write group ID and name if the player was assigned to a group
+        if (arr[front].groupID[0] != '\0') {
+            outfile << arr[front].groupID << ","
+                    << arr[front].groupName << "\n";
+        } else {
+            outfile << ",\n"; // Write empty group ID and name
+        }
         outfile.close();
     }
     front++;
