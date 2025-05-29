@@ -1,0 +1,9 @@
+MatchID,Stage,Team1,Team2,Winner,Timestamp
+Match001,Quarterfinal,Sen,name1,name1,2025-05-27 21:29:07
+Match002,Quarterfinal,sisters,prx,sisters,2025-05-27 21:29:09
+Match003,Semifinal,name1,sisters,sisters,2025-05-27 21:29:10
+Match004,Quarterfinal,naem1,moral,moral,2025-05-27 21:29:11
+Match005,Quarterfinal,sixsense,blazefury,blazefury,2025-05-27 21:29:11
+Match006,Semifinal,moral,blazefury,blazefury,2025-05-27 21:29:12
+Match007,Final,sisters,blazefury,blazefury,2025-05-27 21:29:12
+Champion,,,blazefury

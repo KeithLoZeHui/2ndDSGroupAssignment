@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Name,ID Number,Email,Player Type,Time
 John,KQCW,John@gmail.com,011,Early-bird,2025-05-09 16:24:49
 Jane,0LVI,Jane@gmail.com,011,Early-bird,2025-05-09 16:24:49
@@ -13,3 +14,33 @@ two,0LVI,two@mail,new,Early-bird,2025-05-16 14:34:50
 three,YZ6N,three@mail,new,Early-bird,2025-05-16 14:34:51
 KQCW,oneee,2,1747379750,Checked-in,No
 0LVI,twoo,2,1747379750,Checked-in,No
+=======
+PlayerID,PlayerName,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName
+<<<<<<< HEAD
+5739,Sen1,Early-bird,2025-05-22 23:24:14,Checked-in,No,573905,Sen
+5739,name1@,Early-bird,2025-05-22 23:36:45,Checked-in,No,573905,name1
+5739,name2,Early-bird,2025-05-22 23:59:35,Checked-in,No,573905,sisters
+5739,name1,Early-bird,2025-05-22 23:59:36,Checked-in,No,573905,sisters
+5739,fit1,Wildcard,2025-05-23 00:00:31,Checked-in,No,573905,prx
+5739,fit2,Wildcard,2025-05-23 00:00:31,Checked-in,No,573905,prx
+5739,fit3,Wildcard,2025-05-23 00:00:31,Checked-in,No,573905,prx
+5739,fit4,Wildcard,2025-05-23 00:00:32,Checked-in,No,573905,prx
+5739,fit5,Wildcard,2025-05-23 00:00:32,Checked-in,No,573905,prx
+Yjlu,player1,Wildcard,2025-05-23 00:04:53,Checked-in,No,YjLu0a,naem1
+Yjlu,player2,Wildcard,2025-05-23 00:04:53,Checked-in,No,YjLu0a,naem1
+Yjlu,player3,Wildcard,2025-05-23 00:04:53,Checked-in,No,YjLu0a,naem1
+YjLu_144,cold,Early-bird,2025-05-23 00:09:04,Checked-in,No,YjLu0a,moral
+YjLu_145,ungrateful,Early-bird,2025-05-23 00:09:05,Checked-in,No,YjLu0a,moral
+Xtra,ghost,Early-bird,2025-05-23 01:10:00,Checked-in,No,XtraTeam,sixsense
+Xtra,haze,Early-bird,2025-05-23 01:10:01,Checked-in,No,XtraTeam,sixsense
+Brawl,Drako,Wildcard,2025-05-23 01:12:00,Checked-in,No,BrawlGroup,blazefury
+Brawl,Kiba,Wildcard,2025-05-23 01:12:03,Checked-in,No,BrawlGroup,blazefury
+Ice,Shiver,Early-bird,2025-05-23 01:13:00,Checked-in,No,IceGroup,frostbyte
+Ice,Zero,Early-bird,2025-05-23 01:13:05,Checked-in,No,IceGroup,frostbyte
+Nova,Comet,Wildcard,2025-05-23 01:14:00,Checked-in,No,NovaGroup,starline
+Nova,Stella,Wildcard,2025-05-23 01:14:03,Checked-in,No,NovaGroup,starline
+
+=======
+YjLu_6420,name,Wildcard,2025-05-28 12:27:00,Checked-in,No,YjLu0a,nameofgrpr
+>>>>>>> testing
+>>>>>>> 32fe5b8b781a5bd53ead03fe355737e12926b0c3
