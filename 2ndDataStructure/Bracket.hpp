@@ -7,6 +7,7 @@
 #include <sstream>
 #include <ctime>
 #include <iomanip>
+#include "GroupStage.hpp"
 #include "Array.hpp"
 
 struct Team {
@@ -172,7 +173,7 @@ void simulateTournamentAndLog(Array<Team>& teams) {
     MatchNode* root = buildTournamentTree(teamPtrs);
 
     std::ofstream log("MatchResults.csv");
-    log << "MatchID,Stage,Group1,Group2,Winner,Timestamp\n";
+    log << "MatchID,Stage,Team1,Team2,Winner,Timestamp\n";
 
     std::cout << "\n--- Tournament Simulation ---\n";
     simulateTournament(root, log);
