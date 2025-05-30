@@ -1,199 +1,147 @@
 #include <iostream>
-#include <string>
+// #include <string> // Removed as std::string is not allowed and definitions moved to SpectatorQueue.hpp
 #include <ctime>
 #include <fstream>
+#include <cstring> // Required for C-style string functions
+#include <cstdio>  // Required for sprintf
+
 #include "KeithTask2.hpp"
 #include "CSVOperations.hpp"
 #include "Utils.hpp"
 #include "PlayerQueue.hpp"
 #include "GroupManager.hpp"
+#include "SpectatorQueue.hpp" // Include the new header file
 
-// Stores spectator information including personal details and status
-struct SpectatorInfo {
-    std::string name;
-    std::string id;
-    std::string email;
-    std::string playerType;
-    std::string timeJoined;
-    bool isVIP;
-    bool isActive;
+// Angel's Part: Live Stream & Spectator Queue Management
 
-    SpectatorInfo() : isActive(false), isVIP(false) {}
-};
+// Implementations of StreamQueue methods
 
-// Node structure for the spectator queue linked list
-class Spectator {
-public:
-    std::string name;
-    bool isVIP;
-    int arrayIndex;
-    Spectator* next;
+// Get current time in YYYY-MM-DD HH:MM:SS format
+char* StreamQueue::getCurrentTime() {
+    static char buffer[MAX_TIME_LEN]; // Use a static buffer
+    time_t now = time(nullptr);
+    struct tm* timeinfo = localtime(&now);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    return buffer;
+}
 
-    Spectator(const std::string& n, bool vip, int index)
-        : name(n), isVIP(vip), arrayIndex(index), next(nullptr) {}
-};
-
-// Manages VIP and regular spectator queues using linked lists and array storage
-class StreamQueue {
-private:
-    static const int MAX_SPECTATORS = 100;
-    SpectatorInfo spectatorArray[MAX_SPECTATORS];
-    int currentArraySize;
-
-    Spectator* vipFront;
-    Spectator* regularFront;
-    Spectator* vipRear;
-    Spectator* regularRear;
-    int vipCount;
-    int regularCount;
-    int maxCapacity;
-
-public:
-    // Initialize queue with given capacity
-    StreamQueue(int capacity = 100) : currentArraySize(0), vipFront(nullptr), regularFront(nullptr),
-                                     vipRear(nullptr), regularRear(nullptr),
-                                     vipCount(0), regularCount(0), maxCapacity(capacity) {}
-
-    // Clean up all allocated memory
-    ~StreamQueue() {
-        while (vipFront != nullptr) {
-            Spectator* temp = vipFront;
-            vipFront = vipFront->next;
-            delete temp;
-        }
-        while (regularFront != nullptr) {
-            Spectator* temp = regularFront;
-            regularFront = regularFront->next;
-            delete temp;
-        }
+// Add a new spectator to the queue with their details
+bool StreamQueue::addSpectator(const char* name, const char* id, 
+                               const char* email, const char* playerType, bool isVIP) {
+    if (vipCount + regularCount >= maxCapacity || currentArraySize >= MAX_SPECTATORS) {
+        std::cout << "Queue is full!\n";
+        return false;
     }
 
-    // Get current time in YYYY-MM-DD HH:MM:SS format
-    std::string getCurrentTime() {
-        time_t now = time(nullptr);
-        struct tm* timeinfo = localtime(&now);
-        char buffer[80];
-        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
-        return std::string(buffer);
-    }
+    // Store in array first
+    int arrayIndex = currentArraySize;
+    strncpy(spectatorArray[arrayIndex].name, name, MAX_NAME_LEN - 1);
+    spectatorArray[arrayIndex].name[MAX_NAME_LEN - 1] = '\0';
+    strncpy(spectatorArray[arrayIndex].id, id, MAX_ID_LEN - 1);
+    spectatorArray[arrayIndex].id[MAX_ID_LEN - 1] = '\0';
+    strncpy(spectatorArray[arrayIndex].email, email, MAX_EMAIL_LEN - 1);
+    spectatorArray[arrayIndex].email[MAX_EMAIL_LEN - 1] = '\0';
+    strncpy(spectatorArray[arrayIndex].playerType, playerType, MAX_PLAYER_TYPE_LEN - 1);
+    spectatorArray[arrayIndex].playerType[MAX_PLAYER_TYPE_LEN - 1] = '\0';
+    spectatorArray[arrayIndex].isVIP = isVIP;
+    spectatorArray[arrayIndex].isActive = true;
+    
+    char* currentTimeStr = getCurrentTime();
+    strncpy(spectatorArray[arrayIndex].timeJoined, currentTimeStr, MAX_TIME_LEN - 1);
+    spectatorArray[arrayIndex].timeJoined[MAX_TIME_LEN - 1] = '\0';
 
-    // Add a new spectator to the queue with their details
-    bool addSpectator(const std::string& name, const std::string& id, 
-                      const std::string& email, const std::string& playerType, bool isVIP) {
-        if (vipCount + regularCount >= maxCapacity || currentArraySize >= MAX_SPECTATORS) {
-            std::cout << "Queue is full!\n";
-            return false;
-        }
+    currentArraySize++;
 
-        // Store in array first
-        int arrayIndex = currentArraySize;
-        spectatorArray[arrayIndex].name = name;
-        spectatorArray[arrayIndex].id = id;
-        spectatorArray[arrayIndex].email = email;
-        spectatorArray[arrayIndex].playerType = playerType;
-        spectatorArray[arrayIndex].isVIP = isVIP;
-        spectatorArray[arrayIndex].isActive = true;
-        spectatorArray[arrayIndex].timeJoined = getCurrentTime();
-        currentArraySize++;
+    // Create linked list node
+    Spectator* newSpectator = new Spectator(name, isVIP, arrayIndex);
 
-        // Create linked list node
-        Spectator* newSpectator = new Spectator(name, isVIP, arrayIndex);
-
-        if (isVIP) {
-            if (vipFront == nullptr) {
-                vipFront = vipRear = newSpectator;
-            } else {
-                vipRear->next = newSpectator;
-                vipRear = newSpectator;
-            }
-            vipCount++;
+    if (isVIP) {
+        if (vipFront == nullptr) {
+            vipFront = vipRear = newSpectator;
         } else {
-            if (regularFront == nullptr) {
-                regularFront = regularRear = newSpectator;
-            } else {
-                regularRear->next = newSpectator;
-                regularRear = newSpectator;
-            }
-            regularCount++;
+            vipRear->next = newSpectator;
+            vipRear = newSpectator;
         }
-        return true;
-    }
-
-    // Remove a spectator from the queue (VIPs have priority)
-    bool removeSpectator() {
-        if (vipFront == nullptr && regularFront == nullptr) {
-            std::cout << "Queue is empty!\n";
-            return false;
-        }
-
-        Spectator* temp;
-        if (vipFront != nullptr) {
-            temp = vipFront;
-            vipFront = vipFront->next;
-            if (vipFront == nullptr) vipRear = nullptr;
-            vipCount--;
+        vipCount++;
+    } else {
+        if (regularFront == nullptr) {
+            regularFront = regularRear = newSpectator;
         } else {
-            temp = regularFront;
-            regularFront = regularFront->next;
-            if (regularFront == nullptr) regularRear = nullptr;
-            regularCount--;
+            regularRear->next = newSpectator;
+            regularRear = newSpectator;
         }
+        regularCount++;
+    }
+    return true;
+}
 
-        // Mark as inactive in array
-        spectatorArray[temp->arrayIndex].isActive = false;
-        
-        std::cout << "Removed spectator: " << temp->name << std::endl;
-        delete temp;
-        return true;
+// Remove a spectator from the queue (VIPs have priority)
+bool StreamQueue::removeSpectator() {
+    if (vipFront == nullptr && regularFront == nullptr) {
+        std::cout << "Queue is empty!\n";
+        return false;
     }
 
-    // Display current state of VIP and regular queues
-    void displayQueue() {
-        std::cout << "\nVIP Queue (" << vipCount << " spectators):\n";
-        Spectator* current = vipFront;
-        while (current != nullptr) {
-            const SpectatorInfo& info = spectatorArray[current->arrayIndex];
-            std::cout << "Name: " << info.name
-                      << ", ID: " << info.id
-                      << ", Type: " << info.playerType
-                      << ", Joined: " << info.timeJoined << std::endl;
-            current = current->next;
-        }
-
-        std::cout << "\nRegular Queue (" << regularCount << " spectators):\n";
-        current = regularFront;
-        while (current != nullptr) {
-            const SpectatorInfo& info = spectatorArray[current->arrayIndex];
-            std::cout << "Name: " << info.name
-                      << ", ID: " << info.id
-                      << ", Type: " << info.playerType
-                      << ", Joined: " << info.timeJoined << std::endl;
-            current = current->next;
-        }
+    Spectator* temp;
+    if (vipFront != nullptr) {
+        temp = vipFront;
+        vipFront = vipFront->next;
+        if (vipFront == nullptr) vipRear = nullptr;
+        vipCount--;
+    } else {
+        temp = regularFront;
+        regularFront = regularFront->next;
+        if (regularFront == nullptr) regularRear = nullptr;
+        regularCount--;
     }
 
-    // Display complete history of all spectators (active and inactive)
-    void displaySpectatorHistory() {
-        std::cout << "\nComplete Spectator History:\n";
-        for (int i = 0; i < currentArraySize; i++) {
-            const SpectatorInfo& info = spectatorArray[i];
-            std::cout << "Name: " << info.name
-                      << ", ID: " << info.id
-                      << ", Email: " << info.email
-                      << ", Type: " << info.playerType
-                      << ", VIP: " << (info.isVIP ? "Yes" : "No")
-                      << ", Status: " << (info.isActive ? "Active" : "Inactive")
-                      << ", Joined: " << info.timeJoined << std::endl;
-        }
+    // Mark as inactive in array
+    spectatorArray[temp->arrayIndex].isActive = false;
+    
+    std::cout << "Removed spectator: " << temp->name << std::endl;
+    delete temp;
+    return true;
+}
+
+// Display current state of VIP and regular queues
+void StreamQueue::displayQueue() {
+    std::cout << "\nVIP Queue (" << vipCount << " spectators):\n";
+    Spectator* current = vipFront;
+    while (current != nullptr) {
+        const SpectatorInfo& info = spectatorArray[current->arrayIndex];
+        std::cout << "Name: " << info.name
+                  << ", ID: " << info.id
+                  << ", Type: " << info.playerType
+                  << ", Joined: " << info.timeJoined << std::endl;
+        current = current->next;
     }
 
-    // Get number of VIP spectators
-    int getVIPCount() const { return vipCount; }
-    // Get number of regular spectators
-    int getRegularCount() const { return regularCount; }
-    // Get total number of spectators
-    int getTotalCount() const { return vipCount + regularCount; }
-};
+    std::cout << "\nRegular Queue (" << regularCount << " spectators):\n";
+    current = regularFront;
+    while (current != nullptr) {
+        const SpectatorInfo& info = spectatorArray[current->arrayIndex];
+        std::cout << "Name: " << info.name
+                  << ", ID: " << info.id
+                  << ", Type: " << info.playerType
+                  << ", Joined: " << info.timeJoined << std::endl;
+        current = current->next;
+    }
+}
+
+// Display complete history of all spectators (active and inactive)
+void StreamQueue::displaySpectatorHistory() {
+    std::cout << "\nComplete Spectator History:\n";
+    for (int i = 0; i < currentArraySize; i++) {
+        const SpectatorInfo& info = spectatorArray[i];
+        std::cout << "Name: " << info.name
+                  << ", ID: " << info.id
+                  << ", Email: " << info.email
+                  << ", Type: " << info.playerType
+                  << ", VIP: " << (info.isVIP ? "Yes" : "No")
+                  << ", Status: " << (info.isActive ? "Active" : "Inactive")
+                  << ", Joined: " << info.timeJoined << std::endl;
+    }
+}
 
 // Helper function to format player ID in PLY000 format
 char* formatPlayerID(int index, char* buffer) {
@@ -201,9 +149,9 @@ char* formatPlayerID(int index, char* buffer) {
     return buffer;
 }
 
-// Function to demonstrate Task 2 functionality
-void demonstrateTask2() {
-    std::cout << "\n=== Task 2: Tournament Registration & Player Queueing ===\n";
+// Function to demonstrate Task 2 functionality (Keith's Part)
+void demonstrateKeithsTask2() {
+    // std::cout << "\n=== Task 2: Tournament Registration & Player Queueing (Keith's Part) ===\n"; // Removed explicit mention of Keith's Part
     
     // Load players from CheckedIn.csv
     int numPlayers = 0;
@@ -215,7 +163,7 @@ void demonstrateTask2() {
     }
     
     // Display all players from CSV
-    std::cout << "\n--- Loaded Players from CSV ---\n";
+    // std::cout << "\n--- Loaded Players from CSV ---\n"; // Removed section header
     std::cout << "Total players loaded: " << numPlayers << "\n";
     std::cout << "PlayerID | PlayerName | PriorityType | Group\n";
     std::cout << "-------------------------------------------\n";
@@ -252,13 +200,13 @@ void demonstrateTask2() {
     }
     
     // Display priority type statistics
-    std::cout << "\n--- Priority Type Statistics ---\n";
+    // std::cout << "\n--- Priority Type Statistics ---\n"; // Removed section header
     std::cout << "Early-bird players: " << earlyBirdCount << "\n";
     std::cout << "Wildcard players: " << wildcardCount << "\n";
     std::cout << "Normal players: " << normalCount << "\n";
     
     // Display group statistics
-    std::cout << "\n--- Group Statistics ---\n";
+    // std::cout << "\n--- Group Statistics ---\n"; // Removed section header
     char processedGroups[MAX_GROUPS][10] = {{0}};
     int groupCount = 0;
     
@@ -295,10 +243,9 @@ void demonstrateTask2() {
     delete[] players;
 }
 
-// Test both the StreamQueue implementation and Task 2 functionality
-int main() {
-    // First demonstrate the original StreamQueue implementation
-    std::cout << "\n=== Original StreamQueue Implementation ===\n";
+// Angel's Part: Live Stream & Spectator Queue Management
+void demonstrateAngelsTask3() {
+    std::cout << "\n=== Task 3: Live Stream & Spectator Queue Management (Angel's Part) ===\n";
     // Initialize queue with capacity of 10 spectators
     StreamQueue queue(10);
 
@@ -328,9 +275,15 @@ int main() {
     // Demonstrate historical tracking of all spectators
     std::cout << "\n=== Complete Spectator History ===";
     queue.displaySpectatorHistory();
-    
-    // Now demonstrate Task 2 functionality
-    demonstrateTask2();
+}
+
+// Main function to run demonstrations
+int main() {
+    // Demonstrate Angel's Task 3
+    demonstrateAngelsTask3();
+
+    // Demonstrate Keith's Task 2
+    demonstrateKeithsTask2();
 
     return 0;
 }
