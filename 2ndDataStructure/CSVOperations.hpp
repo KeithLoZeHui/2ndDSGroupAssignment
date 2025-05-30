@@ -238,14 +238,17 @@ void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players)
 }
 
 // Withdraw a player from CSV
-void withdraw_from_csv(const char* name) {
+void withdraw_from_csv(const char* identifier) {
     int n = 0;
     char data[100][9][120];
     load_checkedin_csv(data, n);
     
     bool found = false;
     for (int i = 0; i < n; i++) {
-        if (strcmp(data[i][1], name) == 0 && strcmp(data[i][6], "No") == 0) {
+        // Match by Player Name (index 1), PlayerID (index 0), or last 3 digits of PlayerID, and not withdrawn
+        if ((strcmp(data[i][1], identifier) == 0 || strcmp(data[i][0], identifier) == 0 ||
+            (strlen(identifier) == 3 && strlen(data[i][0]) == 6 && strcmp(data[i][0] + 3, identifier) == 0))
+            && strcmp(data[i][6], "No") == 0) {
             strcpy(data[i][6], "Yes");
             found = true;
             break;
@@ -254,9 +257,9 @@ void withdraw_from_csv(const char* name) {
     
     if (found) {
         write_checkedin_csv(data, n);
-        std::cout << "Player " << name << " has been withdrawn.\n";
+        std::cout << "Player " << identifier << " has been withdrawn.\n";
     } else {
-        std::cout << "Player " << name << " not found or already withdrawn.\n";
+        std::cout << "Player " << identifier << " not found or already withdrawn.\n";
     }
 }
 

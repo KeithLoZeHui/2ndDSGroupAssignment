@@ -29,7 +29,7 @@ int main() {
                 break;
             case 3: {
                 char name[50];
-                std::cout << "Enter player name to withdraw: ";
+                std::cout << "Enter player name, full PlayerID (e.g., PLY056), or last 3 digits (e.g., 056) to withdraw: ";
                 std::cin.getline(name, 50);
                 withdraw_from_csv(name);
                 break;

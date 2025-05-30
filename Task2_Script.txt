@@ -1,0 +1,135 @@
+# TOURNAMENT REGISTRATION & PLAYER QUEUEING SYSTEM
+## Video Presentation Script (Under 7 Minutes)
+
+### INTRODUCTION (30 seconds)
+- Hello everyone, today I'll be presenting my Tournament Registration and Player Queueing System.
+- This system was developed as part of Task 2 for our Data Structures assignment.
+- My name is Keith Lo Ze Hui, and I'll walk you through the key features and implementation details.
+
+### PROJECT OVERVIEW (45 seconds)
+- The system manages player registrations for a tournament with features including:
+  * Player registration and check-in
+  * Group management with 8 groups of 5 players each
+  * Priority-based queueing system
+  * Player withdrawal and replacement functionality
+- The implementation uses custom data structures without relying on STL containers like vectors or lists.
+- All code is organized in a modular structure with separate header files to keep the main file under 750 lines.
+
+### CODE ORGANIZATION (1 minute)
+- The project is organized into several key components:
+  * KeithLoZeHuiTask2.cpp - Main program file containing:
+    - Main menu interface and program flow control (lines 25-60)
+    - Function calls to header implementations (lines 65-120)
+    - Program initialization and setup (lines 10-20)
+    - Main function with program flow (lines 700-745)
+
+  * KeithTask2.hpp - Core functionality declarations:
+    - Player structure definition (lines 10-20)
+    - Group structure definition (lines 22-30)
+    - Core system function declarations (lines 35-50)
+    - registerPlayer() implementation (lines 55-75)
+    - checkInPlayer() implementation (lines 80-100)
+    - withdrawPlayer() implementation (lines 105-125)
+
+  * PlayerQueue.hpp - Custom queue implementation:
+    - Queue node structure definition (lines 5-10)
+    - PlayerQueue class declaration (lines 12-18)
+    - enQueue() function (lines 25-34)
+    - deQueue() function (lines 36-49)
+    - Priority-based insertion (lines 51-75)
+    - getPriorityValue() helper function (lines 77-86)
+
+  * CSVOperations.hpp - CSV handling:
+    - readCSV() function for loading player data (lines 15-40)
+    - writeCSV() function for saving player data (lines 45-70)
+    - parseCSVLine() for data extraction (lines 75-95)
+    - formatCSVLine() for data formatting (lines 100-115)
+
+  * GroupManager.hpp - Group management:
+    - createGroup() function (lines 20-35)
+    - removeGroup() function (lines 40-55)
+    - addPlayerToGroup() function (lines 60-80)
+    - removePlayerFromGroup() function (lines 85-105)
+    - findGroupByID() search function (lines 110-125)
+    - validateGroupSize() function (lines 130-140)
+
+  * Utils.hpp - Utility functions:
+    - generatePlayerID() for sequential ID creation (lines 10-25)
+    - getCurrentTime() for timestamps (lines 30-45)
+    - validateInput() for user input checking (lines 50-70)
+    - clearScreen() for UI management (lines 75-80)
+    - printHeader() for consistent UI (lines 85-95)
+
+- Player IDs follow a sequential format: PLY000, PLY001, etc.
+- Group IDs follow a similar format: GRP000, GRP001, etc.
+
+### DATA STRUCTURES (1 minute 15 seconds)
+- Instead of using STL containers, I implemented custom data structures:
+  * LinkedList-based queue for player management (in PlayerQueue.hpp):
+    - QueueNode structure (lines 5-10)
+    - front and rear pointers (line 14)
+    - Memory management in destructor (lines 20-24)
+
+  * Array-based storage for groups and checked-in players:
+    - Group groups[MAX_GROUPS] (GroupManager.hpp, line 15)
+    - Player checkedInPlayers[MAX_PLAYERS] (KeithTask2.hpp, line 32)
+    - MAX_GROUPS and MAX_PLAYERS constants (KeithTask2.hpp, lines 5-6)
+
+  * Custom sorting algorithms for priority-based operations:
+    - priorityEnqueue() function (PlayerQueue.hpp, lines 51-75)
+    - getPriorityValue() helper (PlayerQueue.hpp, lines 77-86)
+
+- The system handles three priority types (defined in KeithTask2.hpp, lines 8-10):
+  * Early-bird - Highest priority (value 3)
+  * Wildcard - Medium priority (value 2)
+  * Normal - Standard priority (value 1)
+
+### DEMONSTRATION (2 minutes)
+- Let me demonstrate the key features of the system:
+
+1. First, I'll show the initial state with pre-populated data
+   * 8 groups with 5 players each (40 players total)
+   * CheckedIn.csv contains all player information
+
+2. Main menu options and their implementation locations:
+   * Register Player (KeithTask2.hpp, lines 55-75)
+   * Check-in Player (KeithTask2.hpp, lines 80-100)
+   * Withdraw Player (KeithTask2.hpp, lines 105-125)
+   * Replace Player (KeithTask2.hpp, lines 130-155)
+   * Display Queue (PlayerQueue.hpp, lines 90-110)
+   * Display Checked-in Players (CSVOperations.hpp, lines 120-140)
+   * Organize Groups (GroupManager.hpp, lines 145-170)
+
+3. Let's register a new player and see how they're added to the queue
+
+4. Now I'll demonstrate the check-in process and how priority affects queueing
+
+5. Finally, I'll show the withdrawal and replacement functionality
+
+### TECHNICAL CHALLENGES (1 minute)
+- Some key challenges I faced during development:
+  * Implementing efficient priority-based queueing without using STL
+    - Solution in PlayerQueue.hpp: priority insertion algorithm (lines 51-75)
+    - getPriorityValue() helper function (lines 77-86)
+
+  * Managing file I/O operations for persistent data storage
+    - Solution in CSVOperations.hpp: readCSV() (lines 15-40) and writeCSV() (lines 45-70)
+    - Error handling for file operations (lines 25-30, 50-55)
+
+  * Keeping the code modular while staying under the 750-line limit
+    - Solution: Moving implementations to 5 separate header files
+    - KeithLoZeHuiTask2.cpp reduced from 1200+ to under 750 lines
+    - Main file now only contains essential program flow (lines 700-745)
+
+  * Ensuring proper memory management without memory leaks
+    - Solution in PlayerQueue.hpp: destructor (lines 20-24)
+    - Proper node deletion in deQueue() (lines 36-49)
+
+### CONCLUSION (30 seconds)
+- In summary, this Tournament Registration and Player Queueing System provides:
+  * Efficient player management with priority-based queueing
+  * Persistent data storage using CSV files
+  * Modular code organization with custom data structures
+  * Complete tournament group management
+
+- Thank you for your attention. I'm happy to answer any questions about the implementation or functionality.

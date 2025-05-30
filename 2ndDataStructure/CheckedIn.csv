@@ -52,5 +52,5 @@ PLY049,extra10,extra10@example.com,Normal,2025-05-29 18:20:10,Checked-in,No,GRP0
 PLY050,extra11,extra11@example.com,Wildcard,2025-05-29 18:20:11,Checked-in,No,GRP010,NewGroupC
 PLY051,extra12,extra12@example.com,Early-bird,2025-05-29 18:20:12,Checked-in,No,GRP010,NewGroupC
 PLY052,extra13,extra13@example.com,Normal,2025-05-29 18:20:13,Checked-in,No,GRP010,NewGroupC
-PLY053,extra14,extra14@example.com,Wildcard,2025-05-29 18:20:14,Checked-in,No,GRP010,NewGroupC
+PLY053,extra14,extra14@example.com,Wildcard,2025-05-29 18:20:14,Checked-in,Yes,GRP010,NewGroupC
 PLY054,extra15,extra15@example.com,Early-bird,2025-05-29 18:20:15,Checked-in,No,GRP010,NewGroupC
