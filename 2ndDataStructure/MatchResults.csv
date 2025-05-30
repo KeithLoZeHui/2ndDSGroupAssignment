@@ -1,8 +1,9 @@
-MatchID,Stage,Team1,Team2,Winner,Timestamp
-Match001,Quarterfinal,Sen,name1,name1,2025-05-27 21:29:07
-Match002,Quarterfinal,sisters,prx,sisters,2025-05-27 21:29:09
-Match003,Semifinal,name1,sisters,sisters,2025-05-27 21:29:10
-Match004,Quarterfinal,naem1,moral,moral,2025-05-27 21:29:11
-Match005,Quarterfinal,sixsense,blazefury,blazefury,2025-05-27 21:29:11
-Match006,Semifinal,moral,blazefury,blazefury,2025-05-27 21:29:12
-Match007,Final,sisters,blazefury,blazefury,2025-05-27 21:29:12
+MatchID,Stage,Group1,Group2,Winner,Timestamp
+Match001,Quarterfinal,Playertesters,AlphaTeam,Playertesters,2025-05-30 15:36:24
+Match002,Quarterfinal,BetaSquad,GammaForce,BetaSquad,2025-05-30 15:36:24
+Match003,Semifinal,Playertesters,BetaSquad,Playertesters,2025-05-30 15:36:25
+Match004,Quarterfinal,DeltaWolves,EpsilonElite,DeltaWolves,2025-05-30 15:36:25
+Match005,Quarterfinal,ZetaZenith,OmegaOps,ZetaZenith,2025-05-30 15:36:25
+Match006,Semifinal,DeltaWolves,ZetaZenith,DeltaWolves,2025-05-30 15:36:26
+Match007,Final,Playertesters,DeltaWolves,Playertesters,2025-05-30 15:36:26
+Champion,,,Playertesters

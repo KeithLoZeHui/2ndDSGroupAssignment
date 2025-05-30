@@ -101,7 +101,7 @@ void loadTeamsFromCSV(const std::string& filename, Array<Team>& teams) {
     while (getline(file, line)) {
         std::stringstream ss(line);
         std::string temp, teamName;
-        for (int i = 0; i < 7; ++i) getline(ss, temp, ','); // Skip to GroupName
+        for (int i = 0; i < 8; ++i) getline(ss, temp, ','); // Skip to GroupName
         getline(ss, teamName, ',');
 
         if (!teamExists(teams, teamName) && teams.getSize() < 8) {
@@ -172,7 +172,7 @@ void simulateTournamentAndLog(Array<Team>& teams) {
     MatchNode* root = buildTournamentTree(teamPtrs);
 
     std::ofstream log("MatchResults.csv");
-    log << "MatchID,Stage,Team1,Team2,Winner,Timestamp\n";
+    log << "MatchID,Stage,Group1,Group2,Winner,Timestamp\n";
 
     std::cout << "\n--- Tournament Simulation ---\n";
     simulateTournament(root, log);
