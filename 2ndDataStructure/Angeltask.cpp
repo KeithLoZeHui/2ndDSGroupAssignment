@@ -4,152 +4,187 @@
 #include <fstream>
 #include <cstring> // Required for C-style string functions
 #include <cstdio>  // Required for sprintf
+#include <limits> // Required for numeric_limits
+#include <algorithm>  // Required for std::min
+#include <cctype>  // Required for toupper
 
 #include "KeithTask2.hpp"
 #include "CSVOperations.hpp"
 #include "Utils.hpp"
 #include "PlayerQueue.hpp"
 #include "GroupManager.hpp"
-#include "SpectatorQueue.hpp" // Include the new header file
+// #include "SpectatorQueue.hpp" // Include the new header file (Removed as StreamQueue is removed)
 
-// Angel's Part: Live Stream & Spectator Queue Management
-
-// Implementations of StreamQueue methods
-
-// Get current time in YYYY-MM-DD HH:MM:SS format
-char* StreamQueue::getCurrentTime() {
-    static char buffer[MAX_TIME_LEN]; // Use a static buffer
-    time_t now = time(nullptr);
-    struct tm* timeinfo = localtime(&now);
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
-    return buffer;
+// Helper function to get integer priority for sorting
+int getPriorityOrder(const char* priorityType) {
+    if (strcmp(priorityType, "Early-bird") == 0) {
+        return 1; // Highest priority
+    } else if (strcmp(priorityType, "Normal") == 0) {
+        return 2;
+    } else if (strcmp(priorityType, "Wildcard") == 0) {
+        return 3; // Lowest priority
+    }
+    return 4; // Should not happen with valid data
 }
 
-// Add a new spectator to the queue with their details
-bool StreamQueue::addSpectator(const char* name, const char* id, 
-                               const char* email, const char* playerType, bool isVIP) {
-    if (vipCount + regularCount >= maxCapacity || currentArraySize >= MAX_SPECTATORS) {
-        std::cout << "Queue is full!\n";
-        return false;
-    }
-
-    // Store in array first
-    int arrayIndex = currentArraySize;
-    strncpy(spectatorArray[arrayIndex].name, name, MAX_NAME_LEN - 1);
-    spectatorArray[arrayIndex].name[MAX_NAME_LEN - 1] = '\0';
-    strncpy(spectatorArray[arrayIndex].id, id, MAX_ID_LEN - 1);
-    spectatorArray[arrayIndex].id[MAX_ID_LEN - 1] = '\0';
-    strncpy(spectatorArray[arrayIndex].email, email, MAX_EMAIL_LEN - 1);
-    spectatorArray[arrayIndex].email[MAX_EMAIL_LEN - 1] = '\0';
-    strncpy(spectatorArray[arrayIndex].playerType, playerType, MAX_PLAYER_TYPE_LEN - 1);
-    spectatorArray[arrayIndex].playerType[MAX_PLAYER_TYPE_LEN - 1] = '\0';
-    spectatorArray[arrayIndex].isVIP = isVIP;
-    spectatorArray[arrayIndex].isActive = true;
+// Angel's Part: Live Stream & Spectator Queue Management (New Implementation)
+void processLiveStreamAndOverflow() {
+    std::cout << "\n=== Task 3: Live Stream & Spectator Queue Management ===\n";
     
-    char* currentTimeStr = getCurrentTime();
-    strncpy(spectatorArray[arrayIndex].timeJoined, currentTimeStr, MAX_TIME_LEN - 1);
-    spectatorArray[arrayIndex].timeJoined[MAX_TIME_LEN - 1] = '\0';
-
-    currentArraySize++;
-
-    // Create linked list node
-    Spectator* newSpectator = new Spectator(name, isVIP, arrayIndex);
-
-    if (isVIP) {
-        if (vipFront == nullptr) {
-            vipFront = vipRear = newSpectator;
-        } else {
-            vipRear->next = newSpectator;
-            vipRear = newSpectator;
-        }
-        vipCount++;
-    } else {
-        if (regularFront == nullptr) {
-            regularFront = regularRear = newSpectator;
-        } else {
-            regularRear->next = newSpectator;
-            regularRear = newSpectator;
-        }
-        regularCount++;
-    }
-    return true;
-}
-
-// Remove a spectator from the queue (VIPs have priority)
-bool StreamQueue::removeSpectator() {
-    if (vipFront == nullptr && regularFront == nullptr) {
-        std::cout << "Queue is empty!\n";
-        return false;
-    }
-
-    Spectator* temp;
-    if (vipFront != nullptr) {
-        temp = vipFront;
-        vipFront = vipFront->next;
-        if (vipFront == nullptr) vipRear = nullptr;
-        vipCount--;
-    } else {
-        temp = regularFront;
-        regularFront = regularFront->next;
-        if (regularFront == nullptr) regularRear = nullptr;
-        regularCount--;
-    }
-
-    // Mark as inactive in array
-    spectatorArray[temp->arrayIndex].isActive = false;
+    // Load players from CheckedIn.csv
+    int numPlayers = 0;
+    PlayerCSV* players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
     
-    std::cout << "Removed spectator: " << temp->name << std::endl;
-    delete temp;
-    return true;
-}
-
-// Display current state of VIP and regular queues
-void StreamQueue::displayQueue() {
-    std::cout << "\nVIP Queue (" << vipCount << " spectators):\n";
-    Spectator* current = vipFront;
-    while (current != nullptr) {
-        const SpectatorInfo& info = spectatorArray[current->arrayIndex];
-        std::cout << "Name: " << info.name
-                  << ", ID: " << info.id
-                  << ", Type: " << info.playerType
-                  << ", Joined: " << info.timeJoined << std::endl;
-        current = current->next;
+    if (numPlayers == 0) {
+        std::cout << "No players found in CheckedIn.csv file.\n";
+        // Clean up allocated memory
+        delete[] players; // Ensure players is deleted even if numPlayers is 0
+        return;
     }
 
-    std::cout << "\nRegular Queue (" << regularCount << " spectators):\n";
-    current = regularFront;
-    while (current != nullptr) {
-        const SpectatorInfo& info = spectatorArray[current->arrayIndex];
-        std::cout << "Name: " << info.name
-                  << ", ID: " << info.id
-                  << ", Type: " << info.playerType
-                  << ", Joined: " << info.timeJoined << std::endl;
-        current = current->next;
+    // Implement Selection Sort to sort players by priority
+    // Priority order: Early-bird (1), Normal (2), Wildcard (3)
+    for (int i = 0; i < numPlayers - 1; i++) {
+        int min_idx = i;
+        for (int j = i + 1; j < numPlayers; j++) {
+            if (getPriorityOrder(players[j].PriorityType) < getPriorityOrder(players[min_idx].PriorityType)) {
+                min_idx = j;
+            }
+        }
+        // Swap the found minimum element with the first element
+        if (min_idx != i) {
+            PlayerCSV temp = players[i];
+            players[i] = players[min_idx];
+            players[min_idx] = temp;
+        }
     }
-}
 
-// Display complete history of all spectators (active and inactive)
-void StreamQueue::displaySpectatorHistory() {
-    std::cout << "\nComplete Spectator History:\n";
-    for (int i = 0; i < currentArraySize; i++) {
-        const SpectatorInfo& info = spectatorArray[i];
-        std::cout << "Name: " << info.name
-                  << ", ID: " << info.id
-                  << ", Email: " << info.email
-                  << ", Type: " << info.playerType
-                  << ", VIP: " << (info.isVIP ? "Yes" : "No")
-                  << ", Status: " << (info.isActive ? "Active" : "Inactive")
-                  << ", Joined: " << info.timeJoined << std::endl;
+    // Determine the number of players for the live stream (top 40)
+    int liveStreamCount = std::min(numPlayers, 40);
+
+    // Identify players in the Live Stream
+    // Removed console output for players in Live Stream as requested
+    // std::cout << "\n=== Players in Live Stream (Top " << liveStreamCount << " by Priority) ===\n";
+    // for (int i = 0; i < liveStreamCount; i++) {
+    //     const PlayerCSV& p = players[i];
+    //     std::cout << "- PLY" << p.PlayerID << ": " << p.PlayerName << " (Priority: " << p.PriorityType << ")\n";
+    // }
+
+    // Handle overflow: process remaining players interactively and write to separate files
+    if (numPlayers > 40) {
+        std::cout << "\n=== Processing Overflow Players ===\n";
+        for (int i = 40; i < numPlayers; i++) {
+            PlayerCSV& p = players[i]; // Use non-const reference to allow modification
+            // Keep this output to show which overflow player is being processed
+            std::cout << "Processing Overflow Player: " << p.PlayerName << " (ID: PLY" << p.PlayerID << ", Original Priority: " << p.PriorityType << ")\n";
+
+            // --- Interactive Categorization for Overflow ---
+            char hasID_input;
+            std::cout << "Do you have a Player ID from CheckedIn.csv? (y/n): ";
+            std::cin >> hasID_input;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Consume newline
+
+            // Convert input to uppercase (using toupper from <cctype>)
+            hasID_input = toupper(hasID_input);
+
+            std::ofstream outputFile;
+            const char* filename = nullptr;
+
+            // --- Prompt for Name and Email (and PlayerID if applicable) ---
+            std::cout << "Enter your Name: ";
+            std::cin.getline(p.PlayerName, sizeof(p.PlayerName)); // Read Name
+
+            std::cout << "Enter your Email: ";
+            std::cin.getline(p.PlayerEmail, sizeof(p.PlayerEmail)); // Read Email
+
+            char influenceTypeBuffer[50] = {0}; // Buffer for influence type, initialized to empty
+
+            if (hasID_input == 'Y') {
+                char enteredID[10]; // This input is not used for categorization per requirements
+                std::cout << "Enter Player ID (from CheckedIn.csv): ";
+                std::cin.getline(enteredID, sizeof(enteredID)); // Read input into a temporary buffer
+                std::cout << "Categorizing as VIP based on having Player ID...\n";
+                filename = "VIP.csv"; // Categorize as VIP if they have an ID
+            } else { 
+                 char viewerType_input;
+                 std::cout << "Are you an (I)nfluencer, (N)ormal Viewer, (S)kip categorization, or (L)eave? (I/N/S/L): ";
+                 std::cin >> viewerType_input;
+                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Consume newline
+
+                 // Convert input to uppercase (using toupper from <cctype>)
+                 viewerType_input = toupper(viewerType_input);
+
+                 // Determine which file to write to based on new input (original priority ignored in this branch)
+                 if (viewerType_input == 'I') {
+                      filename = "influencers.csv";
+                      // Prompt for Influence Type if categorised as Influencer
+                      std::cout << "Enter Influence Type (e.g., youtuber, facebook, instagram, tiktok, others): ";
+                      std::cin.getline(influenceTypeBuffer, sizeof(influenceTypeBuffer)); // Read into the shared buffer
+                 } else if (viewerType_input == 'N' || viewerType_input == 'S') { // Includes 'N', 'S' - Route to Normal.csv
+                      filename = "Normal.csv";
+                 } else if (viewerType_input == 'L') {
+                      std::cout << "Leaving player " << p.PlayerName << " uncategorized.\n";
+                      filename = nullptr; // Indicate skip (leave) by setting filename to null
+                 } else {
+                      std::cout << "Invalid input for viewer type. Categorizing as Normal.\n";
+                      filename = "Normal.csv"; // Default to Normal on invalid input (or handle differently if desired)
+                 }
+            }
+
+            // --- Write player data to the determined file (if filename is not null) ---
+            if (filename) {
+                 outputFile.open(filename, std::ios::app);
+                 if (outputFile.is_open()) {
+                      // Write header if file is empty
+                      if (outputFile.tellp() == 0) {
+                          if (strcmp(filename, "VIP.csv") == 0) {
+                              outputFile << "PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,GroupID,GroupName\n";
+                          } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
+                              outputFile << "Name,Email,Time\n";
+                          } else { // For influencers.csv (retain previous format or clarify)
+                              outputFile << "Name,Email,Time,InfluenceType\n";
+                          }
+                      }
+                      // Write player data based on filename
+                      if (strcmp(filename, "VIP.csv") == 0) {
+                          outputFile << p.PlayerID << "," << p.PlayerName << "," << p.PlayerEmail << "," << p.PriorityType << "," << p.RegistrationTime << "," << p.GroupID << "," << p.GroupName << "\n";
+                      } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
+                           outputFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "\n";
+                       } else if (strcmp(filename, "influencers.csv") == 0) { // For influencers.csv
+                            outputFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "," << influenceTypeBuffer << "\n";
+                       }
+                      outputFile.close();
+                      std::cout << "Player " << p.PlayerName << " written to " << filename << "\n";
+                 } else {
+                      std::cerr << "Error: Could not open " << filename << " for writing overflow player " << p.PlayerName << ".\n";
+                 }
+            } else {
+                 // (Optional: Add a log or message if the player was skipped due to 'L' or other reasons)
+                 // std::cout << "Player " << p.PlayerName << " was not written to any file (skipped or left).\n";
+            }
+
+            // --- (Optional) Remove the player from the overflow queue (e.g., pop) if processing is complete ---
+            // (If you have a queue structure, remove the player here after processing, regardless of whether they were written or left.)
+
+            // --- (Optional) Prompt to continue processing the next overflow player (if any) ---
+            // (You could add a prompt here if you want the user to confirm before moving to the next player, e.g., "Process next overflow player? (y/n): ")
+
+            // --- (Optional) Break the loop if the user chooses to leave (e.g., if a global flag is set) ---
+            // (If you want the entire overflow processing to stop if the user leaves, you could set a flag (e.g., bool leaveOverflow = false; at the start) and break the loop here if (leaveOverflow) { ... }.)
+
+            // --- (End of Overflow Processing Loop) ---
+
+            // (Optional: Add a final message after the loop, e.g., "Overflow processing complete.")
+        }
+    } else {
+        std::cout << "\nNo overflow players to process.\n";
     }
+
+    // Clean up allocated memory for players loaded from CSV
+    delete[] players;
 }
 
-// Helper function to format player ID in PLY000 format
-char* formatPlayerID(int index, char* buffer) {
-    sprintf(buffer, "PLY%03d", index);
-    return buffer;
-}
-
-// Function to demonstrate Task 2 functionality (Keith's Part)
+// Keep the demonstration function for Keith's Task 2
 void demonstrateKeithsTask2() {
     // std::cout << "\n=== Task 2: Tournament Registration & Player Queueing (Keith's Part) ===\n"; // Removed explicit mention of Keith's Part
     
@@ -159,6 +194,8 @@ void demonstrateKeithsTask2() {
     
     if (numPlayers == 0) {
         std::cout << "No players found in any CheckedIn.csv file.\n";
+        // Clean up allocated memory
+        delete[] players; // Ensure players is deleted even if numPlayers is 0
         return;
     }
     
@@ -176,7 +213,7 @@ void demonstrateKeithsTask2() {
     for (int i = 0; i < numPlayers; i++) {
         // Format the PlayerID as PLY followed by a 3-digit number
         char formattedID[10];
-        sprintf(formattedID, "PLY%03d", i);
+        sprintf(formattedID, "PLY%03d", players[i].PlayerID);
         
         std::cout << formattedID << " | " 
                   << players[i].PlayerName << " | "
@@ -243,76 +280,13 @@ void demonstrateKeithsTask2() {
     delete[] players;
 }
 
-// Angel's Part: Live Stream & Spectator Queue Management
-void demonstrateAngelsTask3() {
-    std::cout << "\n=== Task 3: Live Stream & Spectator Queue Management (Angel's Part) ===\n";
-    
-    // Initialize queue with capacity of 10 spectators
-    StreamQueue queue(10);
-
-    // Load players from CheckedIn.csv
-    int numPlayers = 0;
-    PlayerCSV* players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
-    
-    if (numPlayers == 0) {
-        std::cout << "No players found in CheckedIn.csv file.\n";
-        return;
-    }
-
-    // Add spectators from CSV data
-    for (int i = 0; i < numPlayers; i++) {
-        // Format player ID
-        char formattedID[10];
-        sprintf(formattedID, "PLY%03d", i);
-        
-        // Determine if player is VIP (Early-bird type)
-        bool isVIP = (strcmp(players[i].PriorityType, "Early-bird") == 0);
-        
-        // Add spectator to queue
-        if (!queue.addSpectator(
-            players[i].PlayerName,    // name
-            formattedID,              // id (formatted as PLY000)
-            players[i].PlayerEmail,   // email (fixed from Email to PlayerEmail)
-            players[i].PriorityType,  // playerType
-            isVIP                     // isVIP (true for Early-bird)
-        )) {
-            std::cout << "Queue is full! Could not add more spectators.\n";
-            break;
-        }
-    }
-
-    // Show current state of VIP and regular queues
-    std::cout << "\n=== Initial Queue State ===";
-    queue.displayQueue();
-
-    // Demonstrate spectator removal with VIP priority
-    std::cout << "\n=== Removing Spectators ===";
-    for (int i = 0; i < 3; i++) {  // Remove 3 spectators to demonstrate
-        if (!queue.removeSpectator()) {
-            std::cout << "No more spectators to remove.\n";
-            break;
-        }
-    }
-
-    // Show updated queue state
-    std::cout << "\n=== Updated Queue State ===";
-    queue.displayQueue();
-
-    // Demonstrate historical tracking of all spectators
-    std::cout << "\n=== Complete Spectator History ===";
-    queue.displaySpectatorHistory();
-
-    // Clean up allocated memory
-    delete[] players;
-}
-
 // Main function to run demonstrations
 int main() {
-    // Demonstrate Angel's Task 3
-    demonstrateAngelsTask3();
+    // Demonstrate Angel's Task 3 (Live Stream & Spectator Queue Management)
+    processLiveStreamAndOverflow();
 
-    // Demonstrate Keith's Task 2
-    demonstrateKeithsTask2();
+    // Demonstrate Keith's Task 2 (Tournament Registration & Player Queueing)
+    demonstrateKeithsTask2(); // Keeping Keith's demonstration for now
 
     return 0;
 }
