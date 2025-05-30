@@ -1,4 +1,1 @@
 PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName
-PLY050,extra11,extra11@example.com,Wildcard,2025-05-29 18:20:11,Checked-in,No,GRP010,NewGroupC
-PLY051,extra12,extra12@example.com,Early-bird,2025-05-29 18:20:12,Checked-in,No,GRP010,NewGroupC
-PLY001,player2,player2@example.com,Early-bird,2025-05-29 18:15:57,Checked-in,No,GRP000,Playertesters

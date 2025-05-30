@@ -76,12 +76,15 @@ void processLiveStreamAndOverflow() {
         // Write headers for all files
         if (vipFile.is_open()) {
             vipFile << "PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName\n";
+            vipFile.flush();
         }
-        if (normalFile.is_open() && normalFile.tellp() == 0) {
+        if (normalFile.is_open()) {
             normalFile << "Name,Email,Time\n";
+            normalFile.flush();
         }
-        if (influencersFile.is_open() && influencersFile.tellp() == 0) {
+        if (influencersFile.is_open()) {
             influencersFile << "Name,Email,Time,InfluenceType\n";
+            influencersFile.flush();
         }
 
         // Check if all necessary files opened successfully
@@ -234,10 +237,12 @@ void processLiveStreamAndOverflow() {
                         std::cerr << "Error: Logic error in VIP writing for player " << p.PlayerName << ". matchedPlayerIndex is -1.\n";
                     }
                 } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
-                     normalFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "\n";
-                 } else if (strcmp(filename, "influencers.csv") == 0) { // For influencers.csv
-                      influencersFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "," << influenceTypeBuffer << "\n";
-                 }
+                      normalFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "\n";
+                      normalFile.flush(); // Ensure data is written to disk immediately
+                  } else if (strcmp(filename, "influencers.csv") == 0) { // For influencers.csv
+                       influencersFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "," << influenceTypeBuffer << "\n";
+                       influencersFile.flush(); // Ensure data is written to disk immediately
+                  }
                 std::cout << "Player " << p.PlayerName << " written to " << filename << "\n";
             }
         } // End of for loop processing overflow players
