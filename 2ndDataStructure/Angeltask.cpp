@@ -246,17 +246,40 @@ void demonstrateKeithsTask2() {
 // Angel's Part: Live Stream & Spectator Queue Management
 void demonstrateAngelsTask3() {
     std::cout << "\n=== Task 3: Live Stream & Spectator Queue Management (Angel's Part) ===\n";
+    
     // Initialize queue with capacity of 10 spectators
     StreamQueue queue(10);
 
-    // Demonstrate adding VIP spectators (Early-bird type)
-    queue.addSpectator("John", "KQCW", "John@gmail.com", "Early-bird", true);
-    queue.addSpectator("Jane", "0LVI", "Jane@gmail.com", "Early-bird", true);
+    // Load players from CheckedIn.csv
+    int numPlayers = 0;
+    PlayerCSV* players = loadPlayersFromCSV("CheckedIn.csv", numPlayers);
+    
+    if (numPlayers == 0) {
+        std::cout << "No players found in CheckedIn.csv file.\n";
+        return;
+    }
 
-    // Demonstrate adding regular spectators
-    queue.addSpectator("Jess", "YZ6N", "Jess@gmail.com", "Regular", false);
-    queue.addSpectator("Mike", "P2M8", "Mike@gmail.com", "Regular", false);
-    queue.addSpectator("Sarah", "R4K9", "Sarah@gmail.com", "Regular", false);
+    // Add spectators from CSV data
+    for (int i = 0; i < numPlayers; i++) {
+        // Format player ID
+        char formattedID[10];
+        sprintf(formattedID, "PLY%03d", i);
+        
+        // Determine if player is VIP (Early-bird type)
+        bool isVIP = (strcmp(players[i].PriorityType, "Early-bird") == 0);
+        
+        // Add spectator to queue
+        if (!queue.addSpectator(
+            players[i].PlayerName,    // name
+            formattedID,              // id (formatted as PLY000)
+            players[i].PlayerEmail,   // email (fixed from Email to PlayerEmail)
+            players[i].PriorityType,  // playerType
+            isVIP                     // isVIP (true for Early-bird)
+        )) {
+            std::cout << "Queue is full! Could not add more spectators.\n";
+            break;
+        }
+    }
 
     // Show current state of VIP and regular queues
     std::cout << "\n=== Initial Queue State ===";
@@ -264,9 +287,12 @@ void demonstrateAngelsTask3() {
 
     // Demonstrate spectator removal with VIP priority
     std::cout << "\n=== Removing Spectators ===";
-    queue.removeSpectator(); // Removes John (VIP)
-    queue.removeSpectator(); // Removes Jane (VIP)
-    queue.removeSpectator(); // Removes Jess (Regular)
+    for (int i = 0; i < 3; i++) {  // Remove 3 spectators to demonstrate
+        if (!queue.removeSpectator()) {
+            std::cout << "No more spectators to remove.\n";
+            break;
+        }
+    }
 
     // Show updated queue state
     std::cout << "\n=== Updated Queue State ===";
@@ -275,6 +301,9 @@ void demonstrateAngelsTask3() {
     // Demonstrate historical tracking of all spectators
     std::cout << "\n=== Complete Spectator History ===";
     queue.displaySpectatorHistory();
+
+    // Clean up allocated memory
+    delete[] players;
 }
 
 // Main function to run demonstrations
