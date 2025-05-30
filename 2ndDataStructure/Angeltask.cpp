@@ -9,6 +9,7 @@
 #include <cctype>  // Required for toupper
 
 #include "KeithTask2.hpp"
+#include "AngelTask.hpp" // Include the new header file for Angel's Task
 #include "CSVOperations.hpp"
 #include "Utils.hpp"
 #include "PlayerQueue.hpp"
@@ -62,23 +63,50 @@ void processLiveStreamAndOverflow() {
     // Determine the number of players for the live stream (top 40)
     int liveStreamCount = std::min(numPlayers, 40);
 
-    // Identify players in the Live Stream
-    // Removed console output for players in Live Stream as requested
-    // std::cout << "\n=== Players in Live Stream (Top " << liveStreamCount << " by Priority) ===\n";
-    // for (int i = 0; i < liveStreamCount; i++) {
-    //     const PlayerCSV& p = players[i];
-    //     std::cout << "- PLY" << p.PlayerID << ": " << p.PlayerName << " (Priority: " << p.PriorityType << ")\n";
-    // }
-
     // Handle overflow: process remaining players interactively and write to separate files
     if (numPlayers > 40) {
         std::cout << "\n=== Processing Overflow Players ===\n";
+
+        // Open output files once before the loop
+        // Use truncate mode for all files to ensure clean start
+        std::ofstream vipFile("VIP.csv", std::ios::trunc);
+        std::ofstream normalFile("Normal.csv", std::ios::trunc);
+        std::ofstream influencersFile("influencers.csv", std::ios::trunc);
+
+        // Write headers for all files
+        if (vipFile.is_open()) {
+            vipFile << "PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName\n";
+        }
+        if (normalFile.is_open() && normalFile.tellp() == 0) {
+            normalFile << "Name,Email,Time\n";
+        }
+        if (influencersFile.is_open() && influencersFile.tellp() == 0) {
+            influencersFile << "Name,Email,Time,InfluenceType\n";
+        }
+
+        // Check if all necessary files opened successfully
+        if (!vipFile.is_open() || !normalFile.is_open() || !influencersFile.is_open()) {
+            std::cerr << "Error: Could not open one or more overflow files for writing.\n";
+            // Close any files that were opened before returning
+            if (vipFile.is_open()) vipFile.close();
+            if (normalFile.is_open()) normalFile.close();
+            if (influencersFile.is_open()) influencersFile.close();
+            // Clean up allocated memory for players loaded from CSV
+            delete[] players;
+            return; // Exit function if files can't be opened
+        }
+
         for (int i = 40; i < numPlayers; i++) {
             PlayerCSV& p = players[i]; // Use non-const reference to allow modification
             // Keep this output to show which overflow player is being processed
-            std::cout << "Processing Overflow Player: " << p.PlayerName << " (ID: PLY" << p.PlayerID << ", Original Priority: " << p.PriorityType << ")\n";
+            std::cout << "Processing Overflow Player: " << p.PlayerName << " (ID: " << p.PlayerID << ", Original Priority: " << p.PriorityType << ")\n";
 
-            // --- Interactive Categorization for Overflow ---
+            // Declare matchedPlayerIndex within the loop scope for each player
+            int matchedPlayerIndex = -1;
+
+            const char* filename = nullptr; // Declare filename here within the loop
+
+            // --- Ask about Player ID first ---
             char hasID_input;
             std::cout << "Do you have a Player ID from CheckedIn.csv? (y/n): ";
             std::cin >> hasID_input;
@@ -87,25 +115,77 @@ void processLiveStreamAndOverflow() {
             // Convert input to uppercase (using toupper from <cctype>)
             hasID_input = toupper(hasID_input);
 
-            std::ofstream outputFile;
-            const char* filename = nullptr;
-
-            // --- Prompt for Name and Email (and PlayerID if applicable) ---
-            std::cout << "Enter your Name: ";
-            std::cin.getline(p.PlayerName, sizeof(p.PlayerName)); // Read Name
-
-            std::cout << "Enter your Email: ";
-            std::cin.getline(p.PlayerEmail, sizeof(p.PlayerEmail)); // Read Email
-
             char influenceTypeBuffer[50] = {0}; // Buffer for influence type, initialized to empty
 
             if (hasID_input == 'Y') {
-                char enteredID[10]; // This input is not used for categorization per requirements
-                std::cout << "Enter Player ID (from CheckedIn.csv): ";
-                std::cin.getline(enteredID, sizeof(enteredID)); // Read input into a temporary buffer
-                std::cout << "Categorizing as VIP based on having Player ID...\n";
-                filename = "VIP.csv"; // Categorize as VIP if they have an ID
+                // --- If user has ID, ONLY ask for Player ID and validate ---
+                char enteredID[10]; // Buffer for entered Player ID
+                bool idFound = false;
+
+                // Loop for ID re-entry or leaving
+                while (true) {
+                    std::cout << "Enter the last 3 digits of your Player ID (e.g., 050 for PLY050): ";
+                    std::cin.getline(enteredID, sizeof(enteredID)); // Read input into the buffer
+
+                    // Convert enteredID to uppercase for case-insensitive comparison
+                    for (int k = 0; enteredID[k]; k++) {
+                        enteredID[k] = toupper(enteredID[k]);
+                    }
+
+                    // --- Parse entered ID as a 3-digit number ---
+                    int enteredID_numeric = atoi(enteredID); // Convert the entered 3 digits to int
+
+                    // Search for the entered ID in the loaded players array
+                    idFound = false;
+                    matchedPlayerIndex = -1; // Reset matchedPlayerIndex for this search attempt within the loop
+                    if (enteredID_numeric >= 0) { // Only search if parsing was successful and ID is valid
+                        // Format the full player ID for comparison (PLY followed by 3 digits)
+                        char fullPlayerID[10];
+                        sprintf(fullPlayerID, "PLY%03d", enteredID_numeric);
+                        
+                        for (int j = 0; j < numPlayers; j++) {
+                            // Compare the full player IDs
+                            if (strcmp(players[j].PlayerID, fullPlayerID) == 0) {
+                                idFound = true;
+                                matchedPlayerIndex = j; // Store the index of the matched player
+                                break; // Exit inner search loop
+                            }
+                        }
+                    }
+
+                    if (idFound) {
+                        std::cout << "Player ID found in CheckedIn.csv. Categorizing as VIP...\n";
+                        filename = "VIP.csv"; // Categorize as VIP if they have an ID and it matches
+                        break; // Exit re-entry loop
+                    } else {
+                        char reenterOrLeave;
+                        std::cout << "Player ID not found in CheckedIn.csv. Re-enter (R) or Leave (L)? (R/L): ";
+                        std::cin >> reenterOrLeave;
+                        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Consume newline
+                        reenterOrLeave = toupper(reenterOrLeave);
+
+                        if (reenterOrLeave == 'L') {
+                            std::cout << "Leaving player " << p.PlayerName << " uncategorized.\n";
+                            filename = nullptr; // Indicate skip (leave)
+                            break; // Exit re-entry loop
+                        } else if (reenterOrLeave == 'R') {
+                            std::cout << "Please re-enter the Player ID.\n";
+                            // Continue the while loop for re-entry
+                        } else {
+                            std::cout << "Invalid input. Please re-enter the Player ID or Leave.\n";
+                            // Continue the while loop for re-entry
+                        }
+                    }
+                }
+
             } else { 
+                 // --- If user does NOT have ID, ask for Name/Email and viewer type prompt for Name and Email ---
+                 std::cout << "Enter your Name: ";
+                 std::cin.getline(p.PlayerName, sizeof(p.PlayerName)); // Read Name
+
+                 std::cout << "Enter your Email: ";
+                 std::cin.getline(p.PlayerEmail, sizeof(p.PlayerEmail)); // Read Email
+
                  char viewerType_input;
                  std::cout << "Are you an (I)nfluencer, (N)ormal Viewer, (S)kip categorization, or (L)eave? (I/N/S/L): ";
                  std::cin >> viewerType_input;
@@ -114,7 +194,7 @@ void processLiveStreamAndOverflow() {
                  // Convert input to uppercase (using toupper from <cctype>)
                  viewerType_input = toupper(viewerType_input);
 
-                 // Determine which file to write to based on new input (original priority ignored in this branch)
+                 // Determine which file to write to based on new input
                  if (viewerType_input == 'I') {
                       filename = "influencers.csv";
                       // Prompt for Influence Type if categorised as Influencer
@@ -133,49 +213,40 @@ void processLiveStreamAndOverflow() {
 
             // --- Write player data to the determined file (if filename is not null) ---
             if (filename) {
-                 outputFile.open(filename, std::ios::app);
-                 if (outputFile.is_open()) {
-                      // Write header if file is empty
-                      if (outputFile.tellp() == 0) {
-                          if (strcmp(filename, "VIP.csv") == 0) {
-                              outputFile << "PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,GroupID,GroupName\n";
-                          } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
-                              outputFile << "Name,Email,Time\n";
-                          } else { // For influencers.csv (retain previous format or clarify)
-                              outputFile << "Name,Email,Time,InfluenceType\n";
-                          }
-                      }
-                      // Write player data based on filename
-                      if (strcmp(filename, "VIP.csv") == 0) {
-                          outputFile << p.PlayerID << "," << p.PlayerName << "," << p.PlayerEmail << "," << p.PriorityType << "," << p.RegistrationTime << "," << p.GroupID << "," << p.GroupName << "\n";
-                      } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
-                           outputFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "\n";
-                       } else if (strcmp(filename, "influencers.csv") == 0) { // For influencers.csv
-                            outputFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "," << influenceTypeBuffer << "\n";
-                       }
-                      outputFile.close();
-                      std::cout << "Player " << p.PlayerName << " written to " << filename << "\n";
-                 } else {
-                      std::cerr << "Error: Could not open " << filename << " for writing overflow player " << p.PlayerName << ".\n";
+                if (strcmp(filename, "VIP.csv") == 0) {
+                    // Use data from the matched player (players[matchedPlayerIndex])
+                    // Add a check to ensure matchedPlayerIndex is valid
+                    if (matchedPlayerIndex != -1) {
+                        const PlayerCSV& matchedP = players[matchedPlayerIndex];
+                        vipFile << matchedP.PlayerID << ","
+                                 << matchedP.PlayerName << ","
+                                 << matchedP.PlayerEmail << ","
+                                 << matchedP.PriorityType << ","
+                                 << matchedP.RegistrationTime << ","
+                                 << matchedP.CheckInStatus << ","
+                                 << matchedP.Withdrawn << ","
+                                 << matchedP.GroupID << ","
+                                 << matchedP.GroupName << "\n";
+                        vipFile.flush(); // Ensure data is written to disk immediately
+                    } else {
+                        // This case should ideally not be reached if filename is VIP.csv
+                        // but matchedPlayerIndex is -1. It indicates a logic error.
+                        std::cerr << "Error: Logic error in VIP writing for player " << p.PlayerName << ". matchedPlayerIndex is -1.\n";
+                    }
+                } else if (strcmp(filename, "Normal.csv") == 0) { // For Normal.csv
+                     normalFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "\n";
+                 } else if (strcmp(filename, "influencers.csv") == 0) { // For influencers.csv
+                      influencersFile << p.PlayerName << "," << p.PlayerEmail << "," << p.RegistrationTime << "," << influenceTypeBuffer << "\n";
                  }
-            } else {
-                 // (Optional: Add a log or message if the player was skipped due to 'L' or other reasons)
-                 // std::cout << "Player " << p.PlayerName << " was not written to any file (skipped or left).\n";
+                std::cout << "Player " << p.PlayerName << " written to " << filename << "\n";
             }
+        } // End of for loop processing overflow players
 
-            // --- (Optional) Remove the player from the overflow queue (e.g., pop) if processing is complete ---
-            // (If you have a queue structure, remove the player here after processing, regardless of whether they were written or left.)
+        // Close files after processing all overflow players
+        if (vipFile.is_open()) vipFile.close();
+        if (normalFile.is_open()) normalFile.close();
+        if (influencersFile.is_open()) influencersFile.close();
 
-            // --- (Optional) Prompt to continue processing the next overflow player (if any) ---
-            // (You could add a prompt here if you want the user to confirm before moving to the next player, e.g., "Process next overflow player? (y/n): ")
-
-            // --- (Optional) Break the loop if the user chooses to leave (e.g., if a global flag is set) ---
-            // (If you want the entire overflow processing to stop if the user leaves, you could set a flag (e.g., bool leaveOverflow = false; at the start) and break the loop here if (leaveOverflow) { ... }.)
-
-            // --- (End of Overflow Processing Loop) ---
-
-            // (Optional: Add a final message after the loop, e.g., "Overflow processing complete.")
-        }
     } else {
         std::cout << "\nNo overflow players to process.\n";
     }
@@ -211,11 +282,8 @@ void demonstrateKeithsTask2() {
     int normalCount = 0;
     
     for (int i = 0; i < numPlayers; i++) {
-        // Format the PlayerID as PLY followed by a 3-digit number
-        char formattedID[10];
-        sprintf(formattedID, "PLY%03d", players[i].PlayerID);
-        
-        std::cout << formattedID << " | " 
+        // Display the PlayerID directly as it's already in the correct format
+        std::cout << players[i].PlayerID << " | " 
                   << players[i].PlayerName << " | "
                   << players[i].PriorityType << " | ";
         

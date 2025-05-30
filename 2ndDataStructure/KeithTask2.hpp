@@ -24,19 +24,6 @@ struct Player {
     char groupName[50]; // Group name
 };
 
-// Add a struct for minimal CSV row for Task 2
-struct PlayerCSV {
-    int PlayerID;
-    char PlayerName[50];
-    char PlayerEmail[100]; // Added email field
-    char PriorityType[20];
-    char RegistrationTime[25];
-    char CheckInStatus[20];
-    char Withdrawn[5];
-    char GroupID[10]; // Auto-generated group ID
-    char GroupName[50]; // Added group name field
-};
-
 // Group struct to hold up to 5 players
 struct Group {
     char groupID[10];
@@ -289,10 +276,6 @@ public:
         std::cout << "----------------------------\n";
     }
 };
-
-// Function declarations (Updated function signatures where necessary)
-PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players);
-void savePlayersToCSV(const char* filename, PlayerCSV* players, int num_players);
 
 // Function declarations - Keep this declaration
 bool is_valid_email(const char* email);

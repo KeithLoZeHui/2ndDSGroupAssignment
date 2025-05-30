@@ -7,6 +7,9 @@
 #include <ctime>
 #include "KeithTask2.hpp"
 #include "Utils.hpp"
+#include "PlayerQueue.hpp"
+#include "GroupManager.hpp"
+#include "AngelTask.hpp"
 
 // Implementation of Count rows in checked-in CSV
 int count_checkedin_csv_rows() {
@@ -164,11 +167,12 @@ PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players) {
     // Read player data
     int i = 0;
     while (file.getline(line, 500) && i < count) {
-        char cols[8][100];
-        int num_cols = split(line, ',', cols, 8);
+        char cols[9][100]; // Corrected to handle 9 columns
+        int num_cols = split(line, ',', cols, 9); // Corrected to split up to 9 columns
         
-        // Convert ID to int
-        players[i].PlayerID = atoi(cols[0]);
+        // Copy PlayerID string to char array
+        strncpy(players[i].PlayerID, cols[0], 9);
+        players[i].PlayerID[9] = '\0'; // Ensure null termination
         
         // Copy other fields
         strncpy(players[i].PlayerName, cols[1], 49);
@@ -192,14 +196,15 @@ PlayerCSV* loadPlayersFromCSV(const char* filename, int& num_players) {
         
         // Handle GroupID and GroupName if they exist
         if (num_cols > 7) {
-            strncpy(players[i].GroupID, cols[7], 9);
+            strncpy(players[i].GroupID, cols[7], 9); // Corrected index
             players[i].GroupID[9] = '\0';
         } else {
             players[i].GroupID[0] = '\0';
         }
         
-        if (num_cols > 8) {
-            strncpy(players[i].GroupName, cols[8], 49);
+        // Handle GroupName (9th column, index 8)
+        if (num_cols > 8) { // Corrected index check
+            strncpy(players[i].GroupName, cols[8], 49); // Corrected index
             players[i].GroupName[49] = '\0';
         } else {
             players[i].GroupName[0] = '\0';
