@@ -1,64 +1,82 @@
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <ctime>
 #include "KeithTask2.hpp"
+#include "AngelTask.hpp"
+#include "CSVOperations.hpp"
+#include "Utils.hpp"
+#include "PlayerQueue.hpp"
+#include "GroupManager.hpp"
 
-int main() {
-    PlayerQueue pq;
-    int choice;
-    do {
-        std::cout << "\nPlayer Queue Management System\n";
-        std::cout << "1. Register Player\n";
-        std::cout << "2. Check-in Player\n";
-        std::cout << "3. Withdraw Player\n";
-        std::cout << "4. Replace Player\n";
-        std::cout << "5. Display Queue\n";
-        std::cout << "6. Display Checked-in Players\n";
-        std::cout << "7. Organize Groups\n";
-        std::cout << "0. Exit\n";
-        std::cout << "Enter choice: ";
+// Function to demonstrate Keith's Task 2
+void demonstrateKeithsTask2() {
+    std::cout << "\n=== Task 2: Tournament Registration & Player Queueing ===\n";
+    
+    // Create player queue
+    PlayerQueue queue(10);
+    
+    // Create group manager
+    GroupManager groupManager;
+    
+    while (true) {
+        std::cout << "\n--- Main Menu ---\n";
+        std::cout << "1. Register player\n";
+        std::cout << "2. Check in player\n";
+        std::cout << "3. Display queue\n";
+        std::cout << "4. Withdraw player\n";
+        std::cout << "5. Replace player\n";
+        std::cout << "6. Group Management\n";
+        std::cout << "7. Exit\n";
+        std::cout << "Enter your choice: ";
+        
+        int choice;
         std::cin >> choice;
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cin.ignore(); // Clear the newline
         
         switch (choice) {
-            case 0: // Exit option
-                std::cout << "Exiting program. Goodbye!\n";
-                break;
             case 1:
-                pq.enqueue();
+                queue.enqueue();
                 break;
             case 2:
-                pq.dequeue();
+                queue.dequeue();
                 break;
-            case 3: {
+            case 3:
+                queue.display();
+                break;
+            case 4: {
                 char name[50];
-                std::cout << "Enter player name, full PlayerID (e.g., PLY056), or last 3 digits (e.g., 056) to withdraw: ";
+                std::cout << "Enter player name to withdraw: ";
                 std::cin.getline(name, 50);
-                withdraw_from_csv(name);
+                queue.withdraw(name);
                 break;
             }
-            case 4: {
+            case 5: {
                 char oldName[50], newName[50];
                 int priority;
-                std::cout << "Enter player name to replace: ";
+                std::cout << "Enter old player name: ";
                 std::cin.getline(oldName, 50);
                 std::cout << "Enter new player name: ";
                 std::cin.getline(newName, 50);
-                std::cout << "Enter new player priority (1=Early-bird, 2=Wildcard, 3=Normal): ";
+                std::cout << "Enter priority (1=Early-bird, 2=Wildcard, 3=Normal): ";
                 std::cin >> priority;
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                replace_in_csv(oldName, newName, priority);
+                std::cin.ignore(); // Clear the newline
+                queue.replace(oldName, newName, priority);
                 break;
             }
-            case 5:
-                pq.display();
-                break;
             case 6:
-                display_checkedin_csv();
+                groupManager.run();
                 break;
             case 7:
-                organize_groups();
-                break;
+                return;
             default:
-                std::cout << "Invalid choice! Please enter a number between 0 and 7.\n";
+                std::cout << "Invalid choice. Please try again.\n";
         }
-    } while (choice != 0);
+    }
+}
+
+int main() {
+    // Demonstrate Keith's Task 2
+    demonstrateKeithsTask2();
     return 0;
 }

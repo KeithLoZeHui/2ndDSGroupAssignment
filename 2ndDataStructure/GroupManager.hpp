@@ -2,448 +2,425 @@
 #define GROUP_MANAGER_HPP
 
 #include <iostream>
+#include <fstream>
 #include <cstring>
-#include "KeithTask2.hpp"
-#include "CSVOperations.hpp"
 #include "Utils.hpp"
 
-// Implementation of GroupManager::assignToGroups()
-void GroupManager::assignToGroups() {
-    // Load data first
-    loadData();
+class GroupManager {
+private:
+    static const int MAX_GROUPS = 100;
+    static const int MAX_MEMBERS_PER_GROUP = 5;
+    char data[MAX_GROUPS][9][120]; // [row][column][data]
+    int rowCount;
     
-    // Count how many players are in each group
-    int groupCounts[MAX_GROUPS] = {0};
-    char groupIDs[MAX_GROUPS][10];
-    char groupNames[MAX_GROUPS][50];
-    int groupCount = 0;
+    void loadData();
+    void saveData();
+    bool is_group_full(const char* groupID);
+    int count_players_in_group(const char* groupID);
+    int count_groups();
     
-    // Initialize arrays
-    for (int i = 0; i < MAX_GROUPS; i++) {
-        groupIDs[i][0] = '\0';
-        groupNames[i][0] = '\0';
+public:
+    GroupManager();
+    void assign_players_to_groups();
+    void merge_small_groups();
+    void display_group_statistics();
+    void create_new_group();
+    void run();
+};
+
+// Constructor
+GroupManager::GroupManager() {
+    rowCount = 0;
+}
+
+// Load data from CSV
+void GroupManager::loadData() {
+    std::ifstream file("CheckedIn.csv");
+    if (!file.is_open()) {
+        std::cout << "Error: Could not open CheckedIn.csv\n";
+        return;
     }
     
-    // First pass: collect all group IDs and count members
+    char line[500];
+    file.getline(line, 500); // Skip header
+    
+    rowCount = 0;
+    while (file.getline(line, 500) && rowCount < MAX_GROUPS) {
+        char temp[9][100]; // Temporary array with correct size for split
+        int num_cols = split(line, ',', temp, 9);
+        if (num_cols >= 9) {
+            // Copy from temp array to data array
+            for (int i = 0; i < 9; i++) {
+                strncpy(data[rowCount][i], temp[i], 119);
+                data[rowCount][i][119] = '\0';
+            }
+            rowCount++;
+        }
+    }
+    
+    file.close();
+}
+
+// Save data to CSV
+void GroupManager::saveData() {
+    std::ofstream file("CheckedIn.csv");
+    if (!file.is_open()) {
+        std::cout << "Error: Could not open CheckedIn.csv for writing\n";
+        return;
+    }
+    
+    // Write header
+    file << "PlayerID,PlayerName,PlayerEmail,PriorityType,RegistrationTime,CheckInStatus,Withdrawn,GroupID,GroupName\n";
+    
+    // Write data
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players (Index 6) or players without a group (Index 7)
-        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
+        file << data[i][0] << ","
+             << data[i][1] << ","
+             << data[i][2] << ","
+             << data[i][3] << ","
+             << data[i][4] << ","
+             << data[i][5] << ","
+             << data[i][6] << ","
+             << data[i][7] << ","
+             << data[i][8] << "\n";
+    }
+    
+    file.close();
+}
+
+// Check if a group is full
+bool GroupManager::is_group_full(const char* groupID) {
+    int count = 0;
+    for (int i = 0; i < rowCount; i++) {
+        if (strcmp(data[i][7], groupID) == 0 && strcmp(data[i][6], "No") == 0) {
+            count++;
+        }
+    }
+    return count >= MAX_MEMBERS_PER_GROUP;
+}
+
+// Count players in a group
+int GroupManager::count_players_in_group(const char* groupID) {
+    int count = 0;
+    for (int i = 0; i < rowCount; i++) {
+        if (strcmp(data[i][7], groupID) == 0 && strcmp(data[i][6], "No") == 0) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Count total number of groups
+int GroupManager::count_groups() {
+    char uniqueGroups[MAX_GROUPS][2][120]; // [0] = ID, [1] = Name
+    int uniqueGroupCount = 0;
+    
+    for (int i = 0; i < rowCount; i++) {
+        if (data[i][7][0] == '\0' || strcmp(data[i][6], "Yes") == 0) continue;
         
         bool found = false;
-        for (int j = 0; j < groupCount; j++) {
-            // GroupID is index 7
-            if (strcmp(groupIDs[j], data[i][7]) == 0) {
-                groupCounts[j]++;
+        for (int j = 0; j < uniqueGroupCount; j++) {
+            if (strcmp(uniqueGroups[j][0], data[i][7]) == 0) {
                 found = true;
                 break;
             }
         }
         
-        // New group found
-        if (!found && groupCount < MAX_GROUPS) {
-            strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
-            groupIDs[groupCount][9] = '\0';
-            
-            // GroupName is index 8
-            strncpy(groupNames[groupCount], data[i][8], 49);
-            groupNames[groupCount][49] = '\0';
-            
-            groupCounts[groupCount] = 1;
-            groupCount++;
+        if (!found && uniqueGroupCount < MAX_GROUPS) {
+            strncpy(uniqueGroups[uniqueGroupCount][0], data[i][7], 119);
+            uniqueGroups[uniqueGroupCount][0][119] = '\0';
+            uniqueGroupCount++;
         }
     }
     
-    // Display current groups
-    std::cout << "\n--- Current Groups ---\n";
-    for (int i = 0; i < groupCount; i++) {
-        std::cout << i+1 << ". " << groupNames[i] << " [" << groupIDs[i] << "] - " 
-                  << groupCounts[i] << " members\n";
-    }
+    return uniqueGroupCount;
+}
+
+// Assign players to groups
+void GroupManager::assign_players_to_groups() {
+    loadData();
     
-    // Second pass: assign players without groups to existing groups that aren't full
+    // Find all unique group IDs
+    char groupIDs[MAX_GROUPS][120];
+    int groupCount = 0;
+    
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players (Index 6) or players already in a group (Index 7)
-        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
+        if (data[i][7][0] == '\0' || strcmp(data[i][6], "Yes") == 0) continue;
         
-        // Find a group with less than MAX_MEMBERS_PER_GROUP members
-        bool assigned = false;
+        bool found = false;
         for (int j = 0; j < groupCount; j++) {
-            // Check if this group is full using the new function
-            if (!is_group_full(groupIDs[j], data, rowCount)) {
-                // Assign to this group (GroupID is index 7, GroupName is index 8)
-                strncpy(data[i][7], groupIDs[j], 119);
-                data[i][7][119] = '\0';
-                
-                strncpy(data[i][8], groupNames[j], 119);
-                data[i][8][119] = '\0';
-                
-                groupCounts[j]++;
-                assigned = true;
-                
-                std::cout << "Assigned player " << data[i][1] << " to group " 
-                          << groupNames[j] << " [" << groupIDs[j] << "] (" 
-                          << groupCounts[j] << "/" << MAX_MEMBERS_PER_GROUP << " members)\n";
+            if (strcmp(groupIDs[j], data[i][7]) == 0) {
+                found = true;
                 break;
             }
         }
         
-        // If no existing group has space, create a new group if possible
-        if (!assigned && groupCount < MAX_GROUPS) {
-            char newGroupID[10];
-            generateSequentialGroupID(newGroupID);
-            
-            std::cout << "Creating new group with ID: " << newGroupID << "\n";
-            std::cout << "Enter group name: ";
-            char newGroupName[50];
-            std::cin.getline(newGroupName, 50);
-            
-            // Assign to new group (GroupID is index 7, GroupName is index 8)
-            strncpy(data[i][7], newGroupID, 119);
-            data[i][7][119] = '\0';
-            
-            strncpy(data[i][8], newGroupName, 119);
-            data[i][8][119] = '\0';
-            
-            // Add to our tracking arrays
-            strncpy(groupIDs[groupCount], newGroupID, 9);
-            groupIDs[groupCount][9] = '\0';
-            
-            strncpy(groupNames[groupCount], newGroupName, 49);
-            groupNames[groupCount][49] = '\0';
-            
-            groupCounts[groupCount] = 1;
+        if (!found && groupCount < MAX_GROUPS) {
+            strncpy(groupIDs[groupCount], data[i][7], 119);
+            groupIDs[groupCount][119] = '\0';
             groupCount++;
-            
-            std::cout << "Assigned player " << data[i][1] << " to new group " 
-                      << newGroupName << " [" << newGroupID << "]\n";
-        }
-        else if (!assigned) {
-            std::cout << "Warning: Could not assign player " << data[i][1] 
-                      << " to a group. All groups are full.\n";
         }
     }
     
-    // Save the updated data
-    saveData();
+    // Assign unassigned players to groups
+    for (int i = 0; i < rowCount; i++) {
+        if (data[i][7][0] != '\0' || strcmp(data[i][6], "Yes") == 0) continue;
+        
+        // Try to find a non-full group
+        for (int j = 0; j < groupCount; j++) {
+            if (!is_group_full(groupIDs[j])) {
+                strncpy(data[i][7], groupIDs[j], 119);
+                data[i][7][119] = '\0';
+                break;
+            }
+        }
+    }
     
-    std::cout << "\nGroup assignments complete.\n";
+    saveData();
+    std::cout << "Players assigned to groups.\n";
 }
 
-// Implementation of GroupManager::mergeSmallGroups()
-void GroupManager::mergeSmallGroups() {
-    // Load data first
+// Merge small groups
+void GroupManager::merge_small_groups() {
     loadData();
     
-    // Count how many players are in each group
-    int groupCounts[MAX_GROUPS] = {0};
-    char groupIDs[MAX_GROUPS][10];
-    char groupNames[MAX_GROUPS][50];
+    // Find all unique group IDs and their sizes
+    char groupIDs[MAX_GROUPS][2][120]; // [0] = ID, [1] = Name
+    int groupSizes[MAX_GROUPS] = {0};
     int groupCount = 0;
     
-    // Initialize arrays
-    for (int i = 0; i < MAX_GROUPS; i++) {
-        groupIDs[i][0] = '\0';
-        groupNames[i][0] = '\0';
-    }
-    
-    // First pass: collect all group IDs and count members
     for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players (Index 6)
-        if (strcmp(data[i][6], "Yes") == 0) continue;
+        if (data[i][7][0] == '\0' || strcmp(data[i][6], "Yes") == 0) continue;
         
-        // If player has a group ID (Index 7)
-        if (data[i][7][0] != '\0') {
-            bool found = false;
-            for (int j = 0; j < groupCount; j++) {
-                // GroupID is index 7
-                if (strcmp(groupIDs[j], data[i][7]) == 0) {
-                    groupCounts[j]++;
-                    found = true;
-                    break;
-                }
+        bool found = false;
+        for (int j = 0; j < groupCount; j++) {
+            if (strcmp(groupIDs[j][0], data[i][7]) == 0) {
+                groupSizes[j]++;
+                found = true;
+                break;
             }
-            
-            // New group found
-            if (!found && groupCount < MAX_GROUPS) {
-                strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
-                groupIDs[groupCount][9] = '\0';
-                
-                strncpy(groupNames[groupCount], data[i][8], 49); // GroupName is index 8
-                groupNames[groupCount][49] = '\0';
-                
-                groupCounts[groupCount] = 1;
-                groupCount++;
-            }
+        }
+        
+        if (!found && groupCount < MAX_GROUPS) {
+            strncpy(groupIDs[groupCount][0], data[i][7], 119);
+            groupIDs[groupCount][0][119] = '\0';
+            strncpy(groupIDs[groupCount][1], data[i][8], 119);
+            groupIDs[groupCount][1][119] = '\0';
+            groupSizes[groupCount] = 1;
+            groupCount++;
         }
     }
     
-    // Display current groups
-    std::cout << "\n--- Current Groups Before Merging ---\n";
+    // Find small groups (less than MAX_MEMBERS_PER_GROUP)
+    bool hasSmallGroups = false;
     for (int i = 0; i < groupCount; i++) {
-        std::cout << i+1 << ". " << groupNames[i] << " [" << groupIDs[i] << "] - " 
-                  << groupCounts[i] << " members\n";
-    }
-    
-    // Find small groups (less than 3 members)
-    bool smallGroupsExist = false;
-    for (int i = 0; i < groupCount; i++) {
-        if (groupCounts[i] < 3) {
-            smallGroupsExist = true;
+        if (groupSizes[i] < MAX_MEMBERS_PER_GROUP) {
+            hasSmallGroups = true;
             break;
         }
     }
     
-    if (!smallGroupsExist) {
-        std::cout << "\nNo small groups to merge.\n";
+    if (!hasSmallGroups) {
+        std::cout << "No small groups to merge.\n";
         return;
     }
     
     // Merge small groups
-    bool changes = false;
     for (int i = 0; i < groupCount; i++) {
-        // Skip if this group has already been processed or has enough members
-        if (groupIDs[i][0] == '\0' || groupCounts[i] >= 3) continue;
+        if (groupSizes[i] >= MAX_MEMBERS_PER_GROUP) continue;
         
+        // Find another small group to merge with
         for (int j = i + 1; j < groupCount; j++) {
-            // Skip if this group has already been processed
-            if (groupIDs[j][0] == '\0') continue;
+            if (groupSizes[j] >= MAX_MEMBERS_PER_GROUP) continue;
             
-            // Check if merging would create a valid group size
-            if (groupCounts[i] + groupCounts[j] <= MAX_MEMBERS_PER_GROUP) {
-                std::cout << "\nMerging group " << groupNames[i] << " [" << groupIDs[i] << "] with " 
-                          << groupNames[j] << " [" << groupIDs[j] << "]\n";
-                
-                // Ask which group name to keep
-                std::cout << "Which group name to keep?\n";
-                std::cout << "1. " << groupNames[i] << "\n";
-                std::cout << "2. " << groupNames[j] << "\n";
-                std::cout << "3. Enter a new name\n";
-                std::cout << "Choice: ";
-                int choice;
-                std::cin >> choice;
-                std::cin.ignore(); // Clear the newline
-                
-                char targetGroupID[10];
-                char targetGroupName[50];
-                
-                // Set target group ID to the first group's ID
-                strncpy(targetGroupID, groupIDs[i], 9);
-                targetGroupID[9] = '\0';
-                
-                // Set the target group name based on user choice
-                if (choice == 1) {
-                    strncpy(targetGroupName, groupNames[i], 49);
-                    targetGroupName[49] = '\0';
-                } else if (choice == 2) {
-                    strncpy(targetGroupName, groupNames[j], 49);
-                    targetGroupName[49] = '\0';
-                } else {
-                    std::cout << "Enter new group name: ";
-                    std::cin.getline(targetGroupName, 50);
+            // Check if merging would exceed MAX_MEMBERS_PER_GROUP
+            if (groupSizes[i] + groupSizes[j] > MAX_MEMBERS_PER_GROUP) continue;
+            
+            // Merge group j into group i
+            for (int k = 0; k < rowCount; k++) {
+                if (strcmp(data[k][7], groupIDs[j][0]) == 0) {
+                    strncpy(data[k][7], groupIDs[i][0], 119);
+                    data[k][7][119] = '\0';
+                    strncpy(data[k][8], groupIDs[i][1], 119);
+                    data[k][8][119] = '\0';
                 }
-                
-                // Update all members of the second group to the target group (Adjusted indices)
-                for (int k = 0; k < rowCount; k++) {
-                    if (strcmp(data[k][6], "Yes") != 0 && strcmp(data[k][7], groupIDs[j]) == 0) { // Withdrawn is index 6, GroupID is index 7
-                        strncpy(data[k][7], targetGroupID, 119); // GroupID is index 7
-                        data[k][7][119] = '\0';
-                        
-                        strncpy(data[k][8], targetGroupName, 119); // GroupName is index 8
-                        data[k][8][119] = '\0';
-                    }
-                }
-                
-                // Update the first group's name if needed (Adjusted indices)
-                if (choice != 1) {
-                    for (int k = 0; k < rowCount; k++) {
-                        if (strcmp(data[k][6], "Yes") != 0 && strcmp(data[k][7], groupIDs[i]) == 0) { // Withdrawn is index 6, GroupID is index 7
-                            strncpy(data[k][8], targetGroupName, 119); // GroupName is index 8
-                            data[k][8][119] = '\0';
-                        }
-                    }
-                }
-                
-                // Update our tracking arrays
-                groupCounts[i] += groupCounts[j];
-                strncpy(groupNames[i], targetGroupName, 49);
-                groupNames[i][49] = '\0';
-                
-                // Mark the second group as processed
-                groupIDs[j][0] = '\0';
-                groupCounts[j] = 0;
-                
-                changes = true;
-                break; // Move to the next group
             }
+            
+            groupSizes[i] += groupSizes[j];
+            groupSizes[j] = 0;
         }
     }
     
-    if (changes) {
-        // Save the updated data
-        saveData();
-        
-        // Display updated groups
-        std::cout << "\n--- Groups After Merging ---\n";
-        for (int i = 0; i < groupCount; i++) {
-            if (groupIDs[i][0] != '\0') {
-                std::cout << i+1 << ". " << groupNames[i] << " [" << groupIDs[i] << "] - " 
-                          << groupCounts[i] << " members\n";
-            }
-        }
-        
-        std::cout << "\nGroup merging complete.\n";
-    } else {
-        std::cout << "\nNo groups were merged. They may be too large when combined.\n";
-    }
+    saveData();
+    std::cout << "Small groups merged.\n";
 }
 
-// Implementation of GroupManager::displayGroupStatistics()
-void GroupManager::displayGroupStatistics() {
-    // Load data first
+// Display group statistics
+void GroupManager::display_group_statistics() {
     loadData();
     
-    // Count groups and their sizes
-    int groupSizes[MAX_GROUPS];
+    // Find all unique group IDs and their sizes
+    char groupIDs[MAX_GROUPS][2][120]; // [0] = ID, [1] = Name
+    int groupSizes[MAX_GROUPS] = {0};
     int groupCount = 0;
     
-    // Initialize the groupSizes array
-    for (int i = 0; i < MAX_GROUPS; i++) {
-        groupSizes[i] = 0;
+    for (int i = 0; i < rowCount; i++) {
+        if (data[i][7][0] == '\0' || strcmp(data[i][6], "Yes") == 0) continue;
+        
+        bool found = false;
+        for (int j = 0; j < groupCount; j++) {
+            if (strcmp(groupIDs[j][0], data[i][7]) == 0) {
+                groupSizes[j]++;
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found && groupCount < MAX_GROUPS) {
+            strncpy(groupIDs[groupCount][0], data[i][7], 119);
+            groupIDs[groupCount][0][119] = '\0';
+            strncpy(groupIDs[groupCount][1], data[i][8], 119);
+            groupIDs[groupCount][1][119] = '\0';
+            groupSizes[groupCount] = 1;
+            groupCount++;
+        }
     }
     
-    // Count the groups and their sizes
-    countGroups(groupCount, groupSizes);
+    // Calculate statistics
+    int totalGroups = groupCount;
+    int smallestSize = MAX_MEMBERS_PER_GROUP;
+    int largestSize = 0;
+    int totalMembers = 0;
+    int sizeDistribution[MAX_MEMBERS_PER_GROUP + 1] = {0};
+    
+    for (int i = 0; i < groupCount; i++) {
+        if (groupSizes[i] < smallestSize) smallestSize = groupSizes[i];
+        if (groupSizes[i] > largestSize) largestSize = groupSizes[i];
+        totalMembers += groupSizes[i];
+        sizeDistribution[groupSizes[i]]++;
+    }
+    
+    float averageSize = totalGroups > 0 ? (float)totalMembers / totalGroups : 0;
     
     // Display statistics
     std::cout << "\n--- Group Statistics ---\n";
-    std::cout << "Total number of groups: " << groupCount << "\n";
+    std::cout << "Total number of groups: " << totalGroups << "\n";
+    std::cout << "Smallest group size: " << smallestSize << " members\n";
+    std::cout << "Largest group size: " << largestSize << " members\n";
+    std::cout << "Average group size: " << averageSize << " members\n\n";
     
-    if (groupCount > 0) {
-        // Find min, max, and calculate average
-        int minSize = MAX_MEMBERS_PER_GROUP;
-        int maxSize = 0;
-        int totalPlayers = 0;
-        
-        for (int i = 0; i < groupCount; i++) {
-            if (groupSizes[i] < minSize) minSize = groupSizes[i];
-            if (groupSizes[i] > maxSize) maxSize = groupSizes[i];
-            totalPlayers += groupSizes[i];
-        }
-        
-        double avgSize = static_cast<double>(totalPlayers) / groupCount;
-        
-        std::cout << "Smallest group size: " << minSize << " members\n";
-        std::cout << "Largest group size: " << maxSize << " members\n";
-        std::cout << "Average group size: " << avgSize << " members\n";
-        
-        // Count groups by size
-        int sizeDistribution[MAX_MEMBERS_PER_GROUP + 1] = {0};
-        for (int i = 0; i < groupCount; i++) {
-            sizeDistribution[groupSizes[i]]++;
-        }
-        
-        std::cout << "\nGroup size distribution:\n";
-        for (int i = 1; i <= MAX_MEMBERS_PER_GROUP; i++) {
-            if (sizeDistribution[i] > 0) {
-                std::cout << "Groups with " << i << " members: " << sizeDistribution[i] << "\n";
-            }
+    std::cout << "Group size distribution:\n";
+    for (int i = 1; i <= MAX_MEMBERS_PER_GROUP; i++) {
+        if (sizeDistribution[i] > 0) {
+            std::cout << "Groups with " << i << " members: " << sizeDistribution[i] << "\n";
         }
     }
 }
 
-// Implementation of GroupManager::createGroup()
-void GroupManager::createGroup() {
-    // Load data first
-    loadData();
-    
-    // Get group details from user
-    char groupName[50];
+// Create new group
+void GroupManager::create_new_group() {
     std::cout << "\n--- Create New Group ---\n";
+    char groupName[50];
     std::cout << "Enter group name: ";
     std::cin.getline(groupName, 50);
     
-    // Generate a random group ID
+    // Find the highest GroupID in the CSV
+    int highestGroupID = -1;
+    std::ifstream fileG("CheckedIn.csv");
+    if (fileG.is_open()) {
+        char line[500];
+        fileG.getline(line, 500); // Skip header
+        while (fileG.getline(line, 500)) {
+            char cols[9][100];
+            int num_cols = split(line, ',', cols, 9);
+            if (num_cols >= 7 && strncmp(cols[7], "GRP", 3) == 0) {
+                int idNum = atoi(cols[7] + 3);
+                if (idNum > highestGroupID) highestGroupID = idNum;
+            }
+        }
+        fileG.close();
+    }
+    
+    // Generate new group ID
+    highestGroupID++;
     char groupID[10];
-    generateSequentialGroupID(groupID);
+    sprintf(groupID, "GRP%03d", highestGroupID);
     
     std::cout << "\nCreated group: " << groupName << " [" << groupID << "]\n";
     
-    // Ask user to add players to the group
+    char addPlayers;
     std::cout << "\nWould you like to add players to this group? (y/n): ";
-    char choice;
-    std::cin >> choice;
+    std::cin >> addPlayers;
     std::cin.ignore(); // Clear the newline
     
-    if (choice == 'y' || choice == 'Y') {
-        // Display available players who are not in a group
-        std::cout << "\nAvailable players:\n";
-        int availableCount = 0;
+    if (addPlayers == 'y' || addPlayers == 'Y') {
+        loadData();
         
+        // Display available players (those without a group)
+        std::cout << "\nAvailable players:\n";
+        bool playersFound = false;
         for (int i = 0; i < rowCount; i++) {
-            // Skip withdrawn players (Index 6) or players already in a group (Index 7)
-            if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
-            
-            std::cout << ++availableCount << ". " << data[i][1] << " (ID: " << data[i][0] << ")\n";
+            if (data[i][7][0] == '\0' && strcmp(data[i][6], "No") == 0) {
+                std::cout << i+1 << ". " << data[i][1] << " (" << data[i][0] << ")\n";
+                playersFound = true;
+            }
         }
         
-        if (availableCount == 0) {
+        if (!playersFound) {
             std::cout << "No available players to add to the group.\n";
             return;
         }
         
-        // Ask user which players to add
-        int playerCount = 0;
-        while (playerCount < MAX_MEMBERS_PER_GROUP) {
-            std::cout << "\nEnter player name to add (or 'done' to finish): ";
-            char playerName[50];
-            std::cin.getline(playerName, 50);
-            
-            if (strcmp(playerName, "done") == 0) {
-                break;
-            }
-            
-            // Find the player in the data
-            bool found = false;
-            for (int i = 0; i < rowCount; i++) {
-                // Skip withdrawn players (Index 6) or players already in a group (Index 7)
-                if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] != '\0') continue;
-                
-                // PlayerName is index 1
-                if (strcmp(data[i][1], playerName) == 0) {
-                    // Assign to this group (GroupID is index 7, GroupName is index 8)
-                    strncpy(data[i][7], groupID, 119);
-                    data[i][7][119] = '\0';
-                    
-                    strncpy(data[i][8], groupName, 119);
-                    data[i][8][119] = '\0';
-                    
-                    playerCount++;
-                    found = true;
-                    
-                    std::cout << "Added player " << playerName << " to group " 
-                              << groupName << " [" << groupID << "]\n";
-                    break;
-                }
-            }
-            
-            if (!found) {
-                std::cout << "Player not found or already in a group. Please try again.\n";
-            }
-            
-            if (playerCount >= MAX_MEMBERS_PER_GROUP) {
-                std::cout << "\nGroup is now full with " << MAX_MEMBERS_PER_GROUP << " members.\n";
-                break;
-            }
+        // Get number of players to add
+        int numPlayers;
+        std::cout << "\nEnter number of players to add (1-" << MAX_MEMBERS_PER_GROUP << "): ";
+        std::cin >> numPlayers;
+        std::cin.ignore(); // Clear the newline
+        
+        if (numPlayers < 1 || numPlayers > MAX_MEMBERS_PER_GROUP) {
+            std::cout << "Invalid number of players.\n";
+            return;
         }
+        
+        // Add players to the group
+        for (int i = 0; i < numPlayers; i++) {
+            int playerIndex;
+            std::cout << "Enter player number to add: ";
+            std::cin >> playerIndex;
+            std::cin.ignore(); // Clear the newline
+            
+            if (playerIndex < 1 || playerIndex > rowCount) {
+                std::cout << "Invalid player number.\n";
+                i--;
+                continue;
+            }
+            
+            playerIndex--; // Convert to 0-based index
+            
+            // Check if player is available
+            if (data[playerIndex][7][0] != '\0' || strcmp(data[playerIndex][6], "Yes") == 0) {
+                std::cout << "Player is not available.\n";
+                i--;
+                continue;
+            }
+            
+            // Assign player to group
+            strncpy(data[playerIndex][7], groupID, 119);
+            data[playerIndex][7][119] = '\0';
+            strncpy(data[playerIndex][8], groupName, 119);
+            data[playerIndex][8][119] = '\0';
+            
+            std::cout << "Added " << data[playerIndex][1] << " to the group.\n";
+        }
+        
+        saveData();
     }
     
-    // Save changes
-    saveData();
     std::cout << "\nGroup created successfully!\n";
 }
 
-// Implementation of GroupManager::organizeGroups()
-void GroupManager::organizeGroups() {
+// Run group management menu
+void GroupManager::run() {
     while (true) {
         std::cout << "\n--- Group Management ---\n";
         std::cout << "1. Assign players to groups\n";
@@ -459,16 +436,16 @@ void GroupManager::organizeGroups() {
         
         switch (choice) {
             case 1:
-                assignToGroups();
+                assign_players_to_groups();
                 break;
             case 2:
-                mergeSmallGroups();
+                merge_small_groups();
                 break;
             case 3:
-                displayGroupStatistics();
+                display_group_statistics();
                 break;
             case 4:
-                createGroup();
+                create_new_group();
                 break;
             case 5:
                 return;
@@ -476,48 +453,6 @@ void GroupManager::organizeGroups() {
                 std::cout << "Invalid choice. Please try again.\n";
         }
     }
-}
-
-// Implementation of GroupManager::countGroups()
-void GroupManager::countGroups(int& groupCount, int groupSizes[]) {
-    // Initialize
-    groupCount = 0;
-    char groupIDs[MAX_GROUPS][10];
-    
-    for (int i = 0; i < MAX_GROUPS; i++) {
-        groupIDs[i][0] = '\0';
-        groupSizes[i] = 0;
-    }
-    
-    // Count groups and their sizes
-    for (int i = 0; i < rowCount; i++) {
-        // Skip withdrawn players (Index 6) or players without a group (Index 7)
-        if (strcmp(data[i][6], "Yes") == 0 || data[i][7][0] == '\0') continue;
-        
-        bool found = false;
-        for (int j = 0; j < groupCount; j++) {
-            // GroupID is index 7
-            if (strcmp(groupIDs[j], data[i][7]) == 0) {
-                groupSizes[j]++;
-                found = true;
-                break;
-            }
-        }
-        
-        // If not found, add to unique groups
-        if (!found && groupCount < MAX_GROUPS) {
-            strncpy(groupIDs[groupCount], data[i][7], 9); // GroupID is index 7
-            groupIDs[groupCount][9] = '\0';
-            groupSizes[groupCount] = 1;
-            groupCount++;
-        }
-    }
-}
-
-// Function to organize groups (wrapper for the class method)
-void organize_groups() {
-    GroupManager manager;
-    manager.organizeGroups();
 }
 
 #endif // GROUP_MANAGER_HPP
