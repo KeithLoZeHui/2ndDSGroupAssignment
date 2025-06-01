@@ -41,7 +41,6 @@ int main() {
 
     // Create groups for qualifiers
     Array<Group> groups;
-    std::cout << "Creating groups for qualifiers...\n";
     for (int i = 0; i < teams.getSize(); ++i) {
         Group g;
         g.name = teams[i].name;
