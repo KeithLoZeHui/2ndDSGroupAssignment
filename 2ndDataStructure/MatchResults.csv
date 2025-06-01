@@ -1,9 +1,26 @@
-MatchID,Stage,Group1,Group2,Winner,Timestamp
-Match001,Quarterfinal,Playertesters,AlphaTeam,Playertesters,2025-05-30 15:36:24
-Match002,Quarterfinal,BetaSquad,GammaForce,BetaSquad,2025-05-30 15:36:24
-Match003,Semifinal,Playertesters,BetaSquad,Playertesters,2025-05-30 15:36:25
-Match004,Quarterfinal,DeltaWolves,EpsilonElite,DeltaWolves,2025-05-30 15:36:25
-Match005,Quarterfinal,ZetaZenith,OmegaOps,ZetaZenith,2025-05-30 15:36:25
-Match006,Semifinal,DeltaWolves,ZetaZenith,DeltaWolves,2025-05-30 15:36:26
-Match007,Final,Playertesters,DeltaWolves,Playertesters,2025-05-30 15:36:26
-Champion,,,Playertesters
+MatchID,Stage,Team1,Team2,Winner,Timestamp
+Match008,Qualifiers,Playertesters,AlphaTeam,Playertesters,2025-06-01 23:34:14
+Match009,Qualifiers,BetaSquad,GammaForce,BetaSquad,2025-06-01 23:34:15
+Match010,Qualifiers,DeltaWolves,EpsilonElite,DeltaWolves,2025-06-01 23:34:15
+Match011,Qualifiers,ZetaZenith,OmegaOps,ZetaZenith,2025-06-01 23:34:16
+Match012,Qualifiers,NewGroupA,NewGroupB,NewGroupA,2025-06-01 23:34:16
+Match013,Qualifiers,NewGroupB2,ioashdiwd,NewGroupB2,2025-06-01 23:34:17
+Match014,Group,NewGroupB2,Playertesters,Playertesters,2025-06-01 23:34:38
+Match015,Group,NewGroupB2,DeltaWolves,DeltaWolves,2025-06-01 23:34:40
+Match016,Group,NewGroupB2,NewGroupA,NewGroupA,2025-06-01 23:34:41
+Match017,Group,Playertesters,DeltaWolves,DeltaWolves,2025-06-01 23:34:41
+Match018,Group,Playertesters,NewGroupA,NewGroupA,2025-06-01 23:34:42
+Match019,Group,DeltaWolves,NewGroupA,NewGroupA,2025-06-01 23:34:43
+Match020,Group,nameless,BetaSquad,nameless,2025-06-01 23:34:43
+Match021,Group,nameless,AlphaTeam,nameless,2025-06-01 23:34:44
+Match022,Group,nameless,ZetaZenith,nameless,2025-06-01 23:34:44
+Match023,Group,BetaSquad,AlphaTeam,BetaSquad,2025-06-01 23:34:44
+Match024,Group,BetaSquad,ZetaZenith,BetaSquad,2025-06-01 23:34:45
+Match025,Group,AlphaTeam,ZetaZenith,AlphaTeam,2025-06-01 23:34:45
+Match026,Knockout,nameless,NewGroupA,nameless,2025-06-01 23:34:58
+Match027,Knockout,BetaSquad,DeltaWolves,BetaSquad,2025-06-01 23:35:00
+Match028,Knockout,nameless,BetaSquad,nameless,2025-06-01 23:35:01
+Match029,Knockout,Playertesters,AlphaTeam,Playertesters,2025-06-01 23:35:01
+Match030,Knockout,GammaForce,EpsilonElite,GammaForce,2025-06-01 23:35:02
+Match031,Knockout,Playertesters,GammaForce,Playertesters,2025-06-01 23:35:02
+Match032,Knockout,nameless,Playertesters,nameless,2025-06-01 23:35:03
