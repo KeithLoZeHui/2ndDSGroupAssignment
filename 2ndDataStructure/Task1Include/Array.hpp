@@ -13,19 +13,38 @@ private:
     void resize() {
         capacity *= 2;
         T* newData = new T[capacity];
-
         for (int i = 0; i < size; i++)
             newData[i] = data[i];
-
         delete[] data;
         data = newData;
     }
 
 public:
-    Array(int initialCapacity = 10) {
-        capacity = initialCapacity;
-        size = 0;
+    // Constructor
+    Array(int initialCapacity = 10)
+        : capacity(initialCapacity), size(0) {
         data = new T[capacity];
+    }
+
+    // Deep Copy Constructor
+    Array(const Array<T>& other)
+        : capacity(other.capacity), size(other.size) {
+        data = new T[capacity];
+        for (int i = 0; i < size; i++)
+            data[i] = other.data[i];
+    }
+
+    // Deep Copy Assignment Operator
+    Array<T>& operator=(const Array<T>& other) {
+        if (this != &other) {
+            delete[] data;
+            capacity = other.capacity;
+            size = other.size;
+            data = new T[capacity];
+            for (int i = 0; i < size; i++)
+                data[i] = other.data[i];
+        }
+        return *this;
     }
 
     ~Array() {
