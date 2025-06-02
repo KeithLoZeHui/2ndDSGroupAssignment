@@ -95,7 +95,7 @@ struct PlayerNode {
     PlayerNode* nextPlayer;
 
     PlayerNode(std::string name);
-    ~PlayerNode(); // Destructor declared here
+    ~PlayerNode(); 
 
     void addMatchToHistory(std::string matchID, std::string opp, std::string out, std::string sc, std::string ts, int k, int d, int a);
     void displayHistory() const;
@@ -124,4 +124,4 @@ public:
     void displayPlayersSortedByKDA() const;
 };
 
-#endif // TASK4_HPP
+#endif 

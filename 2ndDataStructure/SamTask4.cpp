@@ -1,9 +1,9 @@
-#include "Task4.hpp" // Includes all class declarations
-#include <fstream>   // For file input/output
-#include <sstream>   // For stringstream parsing
-#include <limits>    // For numeric_limits for cin.ignore
-#include <random>    // For random number generation
-#include <chrono>    // For seeding random number generator
+#include "Task4.hpp" 
+#include <fstream>   
+#include <sstream>   
+#include <limits>    
+#include <random>    
+#include <chrono>    
 
 // --- Implementations of constructors and destructors for structs defined in Task4.hpp ---
 
@@ -28,7 +28,7 @@ TeamRosterNode::~TeamRosterNode() {
     }
 }
 
-// *** CRUCIAL: DEFINITION FOR TeamRosterNode::addPlayerToRoster ***
+//  DEFINITION FOR TeamRosterNode::addPlayerToRoster 
 void TeamRosterNode::addPlayerToRoster(std::string playerName) {
     RosterPlayerNameNode* newNode = new RosterPlayerNameNode(playerName);
     newNode->next = playersHead;
@@ -53,8 +53,7 @@ PlayerNode::~PlayerNode() {
 }
 
 
-// --- Function Prototypes (Declarations) for global functions in this file ---
-// These tell the compiler that these functions exist and will be defined later in this file.
+// --- Function Prototypes  ---
 void processCheckedInPlayerLine(const std::string& line, RosterDirectory& roster);
 void processMatchResultLine(const std::string& line, RecentMatchStack& recentMatches, PlayerDirectory& playerDirectory, RosterDirectory& roster);
 void displayMenu();
@@ -75,12 +74,10 @@ void RecentMatchStack::push(std::string matchID, std::string winner, std::string
     MatchNode* newNode = new MatchNode(matchID, winner, loser, score, timestamp);
     newNode->next = top;
     top = newNode;
-    // std::cout << "DEBUG: Pushed match " << matchID << " to recent stack." << std::endl;
 }
 
 MatchNode* RecentMatchStack::pop() {
     if (top == nullptr) {
-        // std::cout << "DEBUG: Recent match stack is empty." << std::endl;
         return nullptr;
     }
     MatchNode* temp = top;
@@ -137,7 +134,6 @@ void RosterDirectory::addPlayerToTeam(const std::string& teamName, const std::st
         head = team;
     }
     team->addPlayerToRoster(playerName); // This calls the TeamRosterNode's method
-    // std::cout << "DEBUG: Added player " << playerName << " to team " << teamName << std::endl;
 }
 
 void RosterDirectory::displayAllRosters() const {
@@ -159,7 +155,6 @@ void RosterDirectory::displayAllRosters() const {
 }
 
 // --- PlayerNode Method Implementations ---
-// (These definitions are here as actual implementations)
 void PlayerNode::addMatchToHistory(std::string matchID, std::string opp, std::string out, std::string sc, std::string ts, int k, int d, int a) {
     PlayerMatchHistoryNode* newNode = new PlayerMatchHistoryNode(matchID, opp, out, sc, ts, k, d, a);
     newNode->next = matchHistoryHead;
@@ -177,7 +172,7 @@ void PlayerNode::addMatchToHistory(std::string matchID, std::string opp, std::st
 
 void PlayerNode::displayHistory() const {
     std::cout << "\n--- " << playerName << "'s Full Match History ---" << std::endl;
-    displayOverallStats(); // Show overall stats first
+    displayOverallStats(); 
     PlayerMatchHistoryNode* current = matchHistoryHead;
     if (current == nullptr) {
         std::cout << "  No matches recorded for " << playerName << "." << std::endl;
@@ -251,10 +246,8 @@ void PlayerDirectory::addOrUpdatePlayerMatch(const std::string& playerName, cons
         player = new PlayerNode(playerName);
         player->nextPlayer = head; // Add to the beginning of the master list
         head = player;
-        // std::cout << "DEBUG: New player '" << playerName << "' added to directory." << std::endl;
     }
     player->addMatchToHistory(matchID, opponentName, outcome, score, timestamp, kills, deaths, assists);
-    // std::cout << "DEBUG: Match " << matchID << " added to " << playerName << "'s history." << std::endl;
 }
 
 void PlayerDirectory::displayAllPlayerOverallStats() const {
@@ -271,8 +264,6 @@ void PlayerDirectory::displayAllPlayerOverallStats() const {
 }
 
 // --- Tournament Analysis Functions ---
-
-// Basic implementation of getting sorted players by Wins (finding top 3 without full sort)
 void PlayerDirectory::displayPlayersSortedByWins() const {
     if (head == nullptr) {
         std::cout << "No players to display." << std::endl;
@@ -315,7 +306,7 @@ void PlayerDirectory::displayPlayersSortedByWins() const {
     }
 }
 
-// Win Rate Sort (similar logic to wins, requires checking for 0 total games)
+// Win Rate Sort 
 void PlayerDirectory::displayPlayersSortedByWinRate() const {
     if (head == nullptr) {
         std::cout << "No players to display." << std::endl;
@@ -359,7 +350,7 @@ void PlayerDirectory::displayPlayersSortedByWinRate() const {
     }
 }
 
-// KDA Sort (similar logic to wins, requires checking for 0 deaths)
+// KDA Sort 
 void PlayerDirectory::displayPlayersSortedByKDA() const {
     if (head == nullptr) {
         std::cout << "No players to display." << std::endl;
@@ -421,9 +412,6 @@ void displayMenu() {
 void processCheckedInPlayerLine(const std::string& line, RosterDirectory& roster) {
     std::stringstream ss(line);
     std::string segment;
-
-    // We only need PlayerName and GroupName.
-    // Updated to account for the new 'PlayerEmail' field.
     std::string playerID, playerName, playerEmail, priorityType, regTime, checkInStatus, withdrawn, groupID, groupName; //
 
     std::getline(ss, playerID, ','); // PLY000
@@ -446,12 +434,11 @@ void processCheckedInPlayerLine(const std::string& line, RosterDirectory& roster
     }
 }
 
-// Function to parse a single line from matchresult.csv (definition)
+// Function to parse a single line from matchresult.csv 
 void processMatchResultLine(const std::string& line, RecentMatchStack& recentMatches, PlayerDirectory& playerDirectory, RosterDirectory& roster) {
     std::stringstream ss(line);
     std::string segment;
-    // Updated variable names from team1/team2 to group1/group2 for clarity
-    std::string matchID, stage, group1, group2, winnerTeamName, timestamp; //
+    std::string matchID, stage, group1, group2, winnerTeamName, timestamp; 
 
     std::getline(ss, matchID, ','); // Match001
     std::getline(ss, stage, ','); // Quarterfinal
@@ -460,19 +447,18 @@ void processMatchResultLine(const std::string& line, RecentMatchStack& recentMat
     std::getline(ss, winnerTeamName, ','); // Playertesters
     std::getline(ss, timestamp); // 2025-05-30 15:36:24
 
-    if (matchID == "MatchID" || matchID == "Champion") { // Skip header and champion line
+    if (matchID == "MatchID" || matchID == "Champion") { 
         return;
     }
 
-    std::string loserTeamName = (winnerTeamName == group1) ? group2 : group1; // Use group1/group2
-    std::string score = "1-0"; // Example: assuming each match is best of 1. Adjust if scores are available or a different default is desired.
+    std::string loserTeamName = (winnerTeamName == group1) ? group2 : group1; 
+    std::string score = "1-0"; 
 
     // --- 1. Store recent match results for quick review ---
     recentMatches.push(matchID, winnerTeamName, loserTeamName, score, timestamp);
 
     // --- 2. Maintain structured history for player performance tracking ---
     // Generate random KDA for players
-    // Use a better random number generator
     static std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_int_distribution<> k_dist_win(5, 10);
     std::uniform_int_distribution<> d_dist_win(0, 3);
@@ -493,9 +479,9 @@ void processMatchResultLine(const std::string& line, RecentMatchStack& recentMat
             playerDirectory.addOrUpdatePlayerMatch(currentPlayer->playerName, matchID, loserTeamName, "Win", score, timestamp, k, d, a);
             currentPlayer = currentPlayer->next;
         }
-    } else {
-        // std::cerr << "Warning: Winning team '" << winnerTeamName << "' not found in roster. Skipping player updates for this team." << std::endl;
-    }
+    } 
+        
+    
 
     // Get players from the losing team and update their history
     TeamRosterNode* loserRoster = roster.findTeamRoster(loserTeamName);
@@ -508,17 +494,15 @@ void processMatchResultLine(const std::string& line, RecentMatchStack& recentMat
             playerDirectory.addOrUpdatePlayerMatch(currentPlayer->playerName, matchID, winnerTeamName, "Loss", score, timestamp, k, d, a);
             currentPlayer = currentPlayer->next;
         }
-    } else {
-        // std::cerr << "Warning: Losing team '" << loserTeamName << "' not found in roster. Skipping player updates for this team." << std::endl;
-    }
+    } 
 }
 
 
 int main() {
     // --- Initialize Data Structures ---
     RecentMatchStack recentMatches;
-    RosterDirectory roster;         // To map team names to players
-    PlayerDirectory playerDirectory; // To store individual player performance
+    RosterDirectory roster;         
+    PlayerDirectory playerDirectory; 
 
     // --- Step 1: Populate RosterDirectory from CheckedIn.csv ---
     std::cout << "--- Loading Checked-in Players ---" << std::endl;
@@ -553,18 +537,17 @@ int main() {
     // --- Menu Loop ---
     int choice;
     do {
-        displayMenu(); // Call displayMenu()
+        displayMenu(); 
         std::cin >> choice;
 
         // Input validation
         while (std::cin.fail() || choice < 0 || choice > 6) {
             std::cout << "Invalid input. Please enter a number between 0 and 6: ";
             std::cin.clear(); // Clear error flags
-            // Ignore the rest of the invalid line
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             std::cin >> choice;
         }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Consume newline after valid int input
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
 
         switch (choice) {
             case 1: {
@@ -609,13 +592,12 @@ int main() {
                 std::cout << "Exiting program. Goodbye!" << std::endl;
                 break;
             default:
-                // Should not be reached due to input validation, but good practice
                 std::cout << "Invalid choice. Please try again." << std::endl;
                 break;
         }
         if (choice != 0) {
             std::cout << "\nPress Enter to continue...";
-            std::cin.get(); // Wait for user to press enter before showing menu again
+            std::cin.get(); 
         }
     } while (choice != 0);
 
